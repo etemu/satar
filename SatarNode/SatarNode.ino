@@ -59,10 +59,11 @@ byte Ethernet::buffer[512]; // Buffer for ethernet frames
 volatile boolean startTriggered=0; // flag which will be set to 1 if the interrupt triggers
 volatile boolean finishTriggered=0; // flag which will be set to 1 if the interrupt triggers
 boolean trigger_start_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
+boolean trigger_finish_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
 unsigned int debounceCountsStart=0;
 unsigned int debounceCountsFinish=0;
 unsigned long startTriggeredMillis=0; 
-
+unsigned long finishTriggeredMillis=0; 
 byte typeEvent=2;
 unsigned long ID=nodeID;
 
@@ -70,7 +71,6 @@ const unsigned int triggerIntervalStart=700; //minimum time between two occuring
 const unsigned int triggerIntervalFinish=700; //minimum time between two occuring finish trigger events in ms
 const int startPin = 2;	// the number of the input pin, ISR only at portpins 2 and 4
 const int finishPin = 4; // the number of the input pin, ISR only at portpins 2 and 4
-const int debounceDelayTrigger = 0;  // milliseconds to wait until stable recovery from the falling edge event
 
 static long timer;
 static long timer_micros;
