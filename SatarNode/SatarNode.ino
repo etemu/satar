@@ -12,6 +12,7 @@
 // 2.7b 201205101733 Shure: bugfixing, TSN did not rise
 // 2.8b 201205121620 Shure: outsourced the W5100 code
 // 2.9b 201205150149 Shure: merge satar_timing from satar6
+// 2.10 201205150332 Shure: interrupt service routine redesign
 //
 //      ____      ____    _____    ____      ____ CC 
 //  ___(_ (_`____/ () \__|_   _|__/ () \____| () )_____   
@@ -57,10 +58,10 @@ byte Ethernet::buffer[512]; // Buffer for ethernet frames
 
 volatile boolean startTriggered=0; // flag which will be set to 1 if the interrupt triggers
 volatile boolean finishTriggered=0; // flag which will be set to 1 if the interrupt triggers
+boolean trigger_start_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
 unsigned int debounceCountsStart=0;
 unsigned int debounceCountsFinish=0;
-unsigned long lastReadStart=0; 
-unsigned long lastReadFinish=0;
+unsigned long startTriggeredMillis=0; 
 
 byte typeEvent=2;
 unsigned long ID=nodeID;
