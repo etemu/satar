@@ -20,9 +20,9 @@ void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned 
   payloadString+="&NODE="; 
   payloadString+=nodeID; // hardcoded with #DEFINE, TODO: implement hardware Jumper setting
 
- // if (cardLog){
-    logPacketToCard(payloadString); // Log the string to the SD card.
-//  }
+if (cardLog){
+    logPacketToCard(payloadString); // Log the forged payload string to the SD card.
+  }
 
   char payload[48]; // this is the whole payload as a char array.
   payloadString.toCharArray(payload, 48); // convert String into char* and fill the buffer

@@ -1,6 +1,7 @@
 void logPacketToCard(String dataString){
-digitalWrite(10, HIGH); // CS ethernet
+digitalWrite(CS_ETH, HIGH); // CS ethernet
 digitalWrite(CS_SD, LOW); // CS SD
+
 File dataFile = SD.open("satar.csv", FILE_WRITE);
 
   if (dataFile) {
@@ -8,13 +9,13 @@ File dataFile = SD.open("satar.csv", FILE_WRITE);
     dataFile.close();
     Serial.println("Save to SD card successful.");
     // print to the serial port too:
-    // Serial.println(dataString);
- dataFile.close();      
+    Serial.println(dataString);
   }  
 
   else {
-    Serial.println("! Save to SD card failed.");  // if the file isn't open, send out an error
+    Serial.println("! Save to SD card failed.");  // if the file isn't accessible, send out an error
   } 
+  
 digitalWrite(CS_SD, HIGH); // CS SD
-digitalWrite(10, LOW); // CS ethernet
+digitalWrite(CS_ETH, LOW); // CS ethernet  
 }

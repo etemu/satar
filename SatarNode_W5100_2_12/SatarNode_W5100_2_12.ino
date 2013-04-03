@@ -28,29 +28,32 @@
 // CC-BY-SA 3.0: This work is Open Source and licensed under
 // the Creative Commons Attribution-ShareAlike 3.0 License.
 
-// #include <EtherCard.h> // library with simple IP + TCP stack 
+// #include <EtherCard.h> // library with simple IP + TCP stack for ENC28J60
 #include <SPI.h>
 #include <Ethernet.h> // library to interface W5100 with integrated TCP stack
-#include <SD.h> // library to interface the Micro-SD card,
+#include <SD.h> // library to interface the Micro-SD card
 // ** MOSI - pin 11
 // ** MISO - pin 12
 // ** CLK - pin 13
-// ** CS - pin 4 for SD card
+// ** CS - pin 4 for SD card interface
+// ** CS - pin 10 for ethernet interface
 
 ////////////////////////////////// BEGIN Config
 
-const int CS_SD = 4; // ** CS - pin 4 for SD card
-#define DEBUG 1 // debug mode with verbose output over serial at 115200 
-#define nodeID 20
+#define nodeID 200 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
+
+const short CS_SD = 4; // ** CS - pin 4 for SD card
+const short CS_ETH = 10; // ** CS - pin 10 for ethernet
+#define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
 #define EthernetType 1 // type of ethernet hardware: 0=Microchip ENC28J60, 1=Wiznet W5100
-#define DHCP 0 //disable or enable DHCP client
+#define DHCP 0 //disable or enable DHCP client NOTE: DHCP not yet implemented
 #define REQUEST_RATE 5000 // request rate of webpage query in ms, for keepalive or debugging
 
-IPAddress ip(192,168,8,nodeID); // static IP if DHCP is disabled
-IPAddress gw(192,168,8, 1); // static gateway IP if DHCP is disabled
-IPAddress subnet(255, 255, 255, 0); // static gateway IP if DHCP is disabled
+IPAddress ip(192,168,178,nodeID); // static IP if DHCP is disabled
+IPAddress gw(192,168,178, 1); // static gateway IP if DHCP is disabled
+IPAddress subnet(255, 255, 255, 0); // static subnet if DHCP is disabled
 static byte mac[] = { 
-  0x01,0x01,0x01,0x01,0x32,nodeID }; // ethernet interface mac address
+  0x01,0x01,0x01,0x01,0x32,0x32 }; // ethernet interface mac address
 static char website[] PROGMEM = "www.etemu.com"; // remote server, TLD/vHost
 IPAddress server(83,169,41,76); // remote server, IP, comma separated
 
@@ -58,10 +61,10 @@ IPAddress server(83,169,41,76); // remote server, IP, comma separated
 
 // Initialize the Ethernet client library
 // with the IP address and port of the server 
-// that we want to connect to (port 80 is default for HTTP):
+// that we want to connect to (port 80 = default for HTTP):
 EthernetClient client;
-volatile boolean startTriggered=0; // flag which will be set to 1 if the interrupt triggers
-volatile boolean finishTriggered=0; // flag which will be set to 1 if the interrupt triggers
+volatile boolean startTriggered=0; // flag which will be set to 1 in an ISR if the interrupt triggers
+volatile boolean finishTriggered=0; // same, but for second portpin (e.g. finish line)
 boolean trigger_start_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
 boolean trigger_finish_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
 unsigned int debounceCountsStart=0;
@@ -72,9 +75,9 @@ byte typeEvent=2;
 unsigned long ID=nodeID;
 
 const unsigned int triggerIntervalStart=700; //minimum time between two occuring start trigger events in ms
-const unsigned int triggerIntervalFinish=700; //minimum time between two occuring finish trigger events in ms
-const int startPin = 2;	// the number of the input pin, ISR only at portpins 2 and 4
-const int finishPin = 4; // the number of the input pin, ISR only at portpins 2 and 4
+const unsigned int triggerIntervalFinish=700; 
+const int startPin = 2;	// the number of the input pin, ISR only at portpins 2 and 4 (AtMega328)
+const int finishPin = 4; 
 
 static long timer;
 static long timer_micros;
@@ -82,50 +85,56 @@ static boolean cardLog=0;
 
 void setup () {
   Serial.begin(115200); // init serial connection for debugging
-  pinMode(4, OUTPUT); // CS SD card
-  pinMode(10, OUTPUT); // CS hardware SPI, e.g. ethernet
+  pinMode(CS_SD, OUTPUT); // CS SD card
+  pinMode(CS_ETH, OUTPUT); // CS hardware SPI, e.g. ethernet
   pinMode(startPin, INPUT); //ISR only at portpins 2 and 4
-//  pinMode(finishPin, INPUT); //ISR only at portpins 2 and 4
+//  pinMode(finishPin, INPUT); //ISR only at portpins 2 and 4 TODO: fix the wiring and reroute CS_SD!
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Arduino Leonardo < only
   }
-  
+
+//============= BEGIN SD CARD INIT
+
 printRAM();
 
-  Serial.println("\n======================");
-  Serial.println("=== [SATAR Controller]");
-  Serial.println("=== CC-BY-SA-NC 3.0");
-  Serial.print("=== nodeID: ");
-  Serial.print(nodeID);
-  if (EthernetType==0){ 
-    Serial.println("\n=== Eth Connection: (SPI) Microchip ENC28J60 (10-baseT)");
-  }
-  if (EthernetType==1){ 
-    Serial.println("\n=== Eth Connection: (SPI) Wiznet W5100 (100-baseT)");
-  }
-  Ethernet.begin(mac, ip, gw, subnet);
-  Serial.print("=== SATAR node IP: ");
-  Serial.println(Ethernet.localIP());
-  timer = - REQUEST_RATE; // start timing out right away
-  // digitalWrite(startPin, HIGH); //20kOhm internal pull-up enable 
-  // digitalWrite(finishPin, HIGH); //20kOhm internal pull-up enable
-  // attachInterrupt(0, trigger_start, RISING); //0 = portpin 2
-  // attachInterrupt(1, trigger_finish, RISING); //1 = portpin 4
-printRAM();
-digitalWrite(10, HIGH); // CS ethernet
+digitalWrite(CS_ETH, HIGH); // CS ethernet
 digitalWrite(CS_SD, LOW); // CS SD
   if (!SD.begin(CS_SD)) { 
     Serial.println("! SD card init failed or no card present.");
     static boolean cardLog=0;
   }
   else {
-    Serial.println("=== SD card initialized.");
+    Serial.println("== SD card initialized.");
     static boolean cardLog=1;
     logPacketToCard("REBOOT"); //
+    logPacketToCard("REBOOTREBOOT"); //    
+    // logPacketToCard("DEBUGDEBUG"); // debug
+    // logPacketToCard("TripleDebug"); // debug
   }
-
 digitalWrite(CS_SD, HIGH); // CS SD
-digitalWrite(10, LOW); // CS ethernet
+digitalWrite(CS_ETH, LOW); // CS ethernet
+
+//============= END SD CARD INIT
+  
+printRAM();
+
+  Serial.println("\n=====================");
+  Serial.println("== [SATAR Controller]");
+  Serial.println("== CC-BY-SA-NC 3.0");
+  Serial.print("== nodeID: ");
+  Serial.print(nodeID);
+  Serial.println("\n== Eth Connection: (SPI) Wiznet W5100 (100-baseT)");
+  Ethernet.begin(mac, ip, gw, subnet);
+  Serial.print("== SATAR node IP: ");
+  Serial.println(Ethernet.localIP());
+  timer = - REQUEST_RATE; // start timing out right away
+  // digitalWrite(startPin, HIGH); //20kOhm internal pull-up enable 
+  // digitalWrite(finishPin, HIGH); //20kOhm internal pull-up enable
+  // attachInterrupt(0, trigger_start, RISING); //0 = portpin 2
+  // attachInterrupt(1, trigger_finish, RISING); //1 = portpin 4
+
+printRAM();
+
 }
 
 void loop () {
