@@ -1,0 +1,35 @@
+<div class="row">
+	<div class="col6">
+		<h1>Debug</h1>
+		<div class="block fscroll">
+			<table>
+				<thead>
+					<tr>
+						<th>event</th>
+					</tr>
+				</thead>
+				<tbody id="events">
+				</tbody>
+			</table>		
+		</div>
+	</div>
+	<div class="col6">
+		<h1>Status</h1>
+		<div class="block">
+			<ul>
+				<li>Version: 0.0.6</li>
+				<p>+ now prepending new events</p>
+				<p>+ added filter for the stream section (id = 1, id = 2)</p>				
+			</ul>
+		</div>
+	</div>
+</div>
+
+<script>
+	// reading
+	var es = new EventSource('/stream');
+	es.onmessage = function(e) {
+		var data = e.data.split(';');
+		logToTable(data[1] + ' from node ' + data[0]);
+	};
+</script>

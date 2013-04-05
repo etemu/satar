@@ -1,0 +1,136 @@
+/* l3 grid 0.9.5 by Leon Rische \ http://www.twitter.com/l3kn \ http://l3kn.de 
+ * TODO
+ * -documentation (jsfiddel?)
+ * -example page
+ * VERSIONS
+ * -0.9.5 replaced the .full class with m-full & m-hidden which will set the width of an element to 100% or 0% on mobile devices
+ * -0.9.4 reduced code size (css magic: border & margin) & clearfix & removed minix & fixed for-loop
+ * -0.9.3 media responsive with the .full class
+ */
+.container {
+  padding: 0 20px; }
+
+.row {
+  margin-left: -10px; }
+  .row [class*="col"] {
+    border: 0px solid rgba(0, 0, 0, 0);
+    border-left-width: 10px;
+    float: left;
+    -webkit-box-sizing: border-box;
+    -moz-box-sizing: border-box;
+    box-sizing: border-box;
+    -moz-background-clip: padding-box !important;
+    -webkit-background-clip: padding-box !important;
+    background-clip: padding-box !important; }
+
+.row .col1 {
+  width: 8.33333%;
+  padding: 0 1%; }
+
+.row .offset1 {
+  border-left-width: 0px;
+  margin-left: 8.33333%; }
+
+.row .col2 {
+  width: 16.66667%;
+  padding: 0 1%; }
+
+.row .offset2 {
+  border-left-width: 10px;
+  margin-left: 16.66667%; }
+
+.row .col3 {
+  width: 25%;
+  padding: 0 1%; }
+
+.row .offset3 {
+  border-left-width: 20px;
+  margin-left: 25%; }
+
+.row .col4 {
+  width: 33.33333%;
+  padding: 0 1%; }
+
+.row .offset4 {
+  border-left-width: 30px;
+  margin-left: 33.33333%; }
+
+.row .col5 {
+  width: 41.66667%;
+  padding: 0 1%; }
+
+.row .offset5 {
+  border-left-width: 40px;
+  margin-left: 41.66667%; }
+
+.row .col6 {
+  width: 50%;
+  padding: 0 1%; }
+
+.row .offset6 {
+  border-left-width: 50px;
+  margin-left: 50%; }
+
+.row .col7 {
+  width: 58.33333%;
+  padding: 0 1%; }
+
+.row .offset7 {
+  border-left-width: 60px;
+  margin-left: 58.33333%; }
+
+.row .col8 {
+  width: 66.66667%;
+  padding: 0 1%; }
+
+.row .offset8 {
+  border-left-width: 70px;
+  margin-left: 66.66667%; }
+
+.row .col9 {
+  width: 75%;
+  padding: 0 1%; }
+
+.row .offset9 {
+  border-left-width: 80px;
+  margin-left: 75%; }
+
+.row .col10 {
+  width: 83.33333%;
+  padding: 0 1%; }
+
+.row .offset10 {
+  border-left-width: 90px;
+  margin-left: 83.33333%; }
+
+.row .col11 {
+  width: 91.66667%;
+  padding: 0 1%; }
+
+.row .offset11 {
+  border-left-width: 100px;
+  margin-left: 91.66667%; }
+
+.row .col12 {
+  width: 100%;
+  padding: 0 1%; }
+
+.row .offset12 {
+  border-left-width: 110px;
+  margin-left: 100%; }
+
+.cf, .row {
+  zoom: 1; }
+  .cf:before, .row:before, .cf:after, .row:after {
+    content: "";
+    display: table; }
+  .cf:after, .row:after {
+    clear: both; }
+
+@media (max-width: 600px) {
+  .m-hidden {
+    display: none; }
+
+  .m-full {
+    width: 100% !important;
+    margin-left: 0px !important; } }

@@ -1,0 +1,65 @@
+/********************************************************
+ * Don't edit the css file, sass is more awesome!        *
+ * sudo gem install sass                                 *
+ * sass --watch public/css/main.sass.public/css/main.css *
+ *********************************************************    
+ *        __
+ *       / /
+ *      / /
+ *     / / 
+ *    / /____
+ *   /____  / 
+ *     __/ /
+ *    /_  / 
+ *  ___/ /
+ * /____/  ASCII-ART? KANN ICH AUCH
+ * 
+ */
+body {
+  background: #f2f2f2 url("/images/noise.png") top left;
+  color: #3a3a3a;
+  margin: 0;
+  font-family: "Helvetica Neue", Helvetica, sans-serif; }
+
+#header {
+  background: #0dbce5; }
+  #header h1 {
+    font-size: 4em;
+    color: #f2f2f2;
+    margin: 10px 0 10px 0; }
+
+#nav ul {
+  float: right;
+  list-style: none; }
+  #nav ul li {
+    float: left;
+    margin: 0 10px 0 10px; }
+    #nav ul li a {
+      font-size: 1.5em;
+      text-decoration: none;
+      text-transform: uppercase;
+      color: #3a3a3a; }
+      #nav ul li a:hover {
+        color: #f2f2f2; }
+
+table {
+  width: 100%; }
+  table td {
+    padding: 8px;
+    line-height: 20px;
+    text-align: left;
+    vertical-align: top;
+    border-top: 1px solid #dddddd; }
+
+.block {
+  background: white;
+  margin-bottom: 30px;
+  padding: 10px 0;
+  box-shadow: 2px 2px 5px #888888;
+  -webkit-box-shadow: 2px 2px 5px #888888;
+  -moz-box-shadow: 2px 2px 5px #888888;
+  -o-box-shadow: 2px 2px 5px #888888; }
+
+.fscroll {
+  height: 400px;
+  overflow-y: scroll; }
