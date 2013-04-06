@@ -12,5 +12,5 @@
 $sql_host	= 'localhost'; 		// the database server, e.g. localhost
 $sql_user 	= 'USER'; 			// username who with read+write access
 $sql_pass 	= 'PASSWORD'; 		// the password
-$sql_db 	= 'DATABASE'; 		// the database which is used for the
+$sql_db 	= 'satar'; 		// the database which is used
 ?>

@@ -15,6 +15,7 @@
 // 2.10 201205150332 Shure: interrupt service routine redesign
 // 2.11 201206071741 Shure: fork to W5100 due to buggy ISR+ENC28J60
 // 2.12 201209010523 Shure: SD card logging (out of RAM :| )
+// 2.13 201304060158 Shure: decrease payload buffer 48->42
 //      ____      ____    _____    ____      ____ CC 
 //  ___(_ (_`____/ () \__|_   _|__/ () \____| () )_____   
 //    .__)__)   /__/\__\   |_|   /__/\__\   |_|\_\
