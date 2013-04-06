@@ -9,8 +9,9 @@
 // Change the values below to your MySQL server data.
 // The MySQL table name is hardcoded and will be "satar".
 //
-$sql_host	= 'localhost'; 		// the database server, e.g. localhost
-$sql_user 	= 'USER'; 			// username who with read+write access
-$sql_pass 	= 'PASSWORD'; 		// the password
-$sql_db 	= 'satar'; 		// the database which is used
+$sql_host		= 'localhost'; 		// the database server, e.g. localhost
+$sql_user 		= 'USER'; 			// username who with read+write access
+$sql_pass 		= 'PASSWORD'; 		// the password
+$sql_db 		= 'satar'; 			// the database which is used
+$ruby_APIurl 	= 'http://localhost/satar/api'; // API url for realtime processing and web-GUI
 ?>
