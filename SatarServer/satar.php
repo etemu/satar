@@ -42,15 +42,20 @@ $result = post_request($ruby_APIurl, $post_data);
  
 if ($result['status'] == 'ok'){
  
-	echo "ACK:   Server\r\n";
-			   
-    // Print headers 
+	if ($result['content'])
+		echo "WRN: Server reply not NULL\r\n";
+		
+	if ($result['content']=='')
+		echo "ACK:   Server\r\n";;
+	
+	// Print headers 
     // echo $result['header']; 
  
     // echo '<hr />';
  
     // print the result of the whole request:
     // echo $result['content'];
+	
  
 }
 else {
