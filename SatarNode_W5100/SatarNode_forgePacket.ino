@@ -1,3 +1,4 @@
+boolean lastConnected = false;
 
 void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned int ID) {    
   if (DEBUG) {
@@ -28,51 +29,60 @@ if (cardLog){
   payloadString.toCharArray(payload, 42); // convert String into char* and fill the buffer
 
   if (DEBUG) {
-    Serial.println("# debug information: timer, timeStampEvent, payloadString, payload");
+    Serial.println("###: timer, timeStampEvent, payloadString, payload");
     Serial.println(timer);
     Serial.println(timeStampEvent);
     Serial.println(payloadString);
     Serial.println(payload);
   }
 
-  Serial.println("\n>>> sending GET request.");
+  Serial.println("ETH: initiating connection.");
 
 
   if (client.connect(website, 80)) { //W5100
+    Serial.println("ETH: connected to server.");
     client.print("GET /lab1/satar.php?"); 
     client.print(payload);
     client.println(" HTTP/1.0");
+    client.print("Host: ");
+    client.println(website);    
     client.println();
   } 
   else {
-    Serial.println("connection failed");
+    Serial.println("ETH: connection failed");
   }
-  eth_reply_w5100();
+
   // client.println();  ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply); // ENC
 
   if (DEBUG) {
     unsigned long timer_micros_diff = micros()-timer_micros1;
-    Serial.print("# function forgePacket executed in ");
+    Serial.print("###: forgePacket executed in ");
     Serial.print(timer_micros_diff);
-    Serial.println(" microseconds");
+    Serial.println(" us");
   }
 }
 
 // function eth_reply_w5100 is called when the client request is complete
 static void eth_reply_w5100()
-
 {
-  if (client.available()) {
+  boolean printingPacket = false;
+  char lastEthPacket;
+  
+  while (client.available()) {
     char c = client.read();
-    Serial.print(c);
+    if (c == '\r' && lastEthPacket == '\n') { // leave out the header, just print the content
+        printingPacket=1; }
+    if (printingPacket){ Serial.print(c); }
+    lastEthPacket=c;
   }
 
-  if (!client.connected()) {
+ if (!client.connected() && lastConnected) {
     Serial.println();
-    Serial.println(" Closing connection.");
+    Serial.println("ETH: closing connection...");
     client.stop();
-    Serial.println(" -> Connection closed.");
+    Serial.println("ETH: connection closed.");
   }
+ lastConnected = client.connected();
 }
 
 
