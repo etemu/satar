@@ -13,7 +13,7 @@
 $con = mysql_connect($sql_host, $sql_user, $sql_pass);
 if (!$con)
   {
-  die('ERR: Database: ' . mysql_error());
+  die('ERR: DB: ' . mysql_error());
   }
 mysql_select_db($sql_db, $con);
 ?>

@@ -11,20 +11,20 @@
 //  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
 include 'config/config.php';
-include 'satardb.php';
+include 'config/satardb.php';
 
 // store the values incoming GET request -> MySQL database
 
 $sql="INSERT INTO satar (TSN,EVENT,ID,NODE)
 VALUES
-('$_REQUEST[TSN]','$_REQUEST[EVENT]','$_REQUEST[ID]','$_REQUEST[NODE]')";
+('$_REQUEST[T]','$_REQUEST[E]','$_REQUEST[I]','$_REQUEST[N]')";
 
 if (!mysql_query($sql,$con))
   {
   die('ERR: DB ' . mysql_error());
   }
 
-echo "ACK: Database\r\n";
+echo "ACK: Database\n";
 
 mysql_close($con);
 
@@ -43,10 +43,10 @@ $result = post_request($ruby_APIurl, $post_data);
 if ($result['status'] == 'ok'){
  
 	if ($result['content'])
-		echo "WRN: Server reply not NULL\r\n";
+		echo "WRN: SatarServerAPI ERR\n";
 		
 	if ($result['content']=='')
-		echo "ACK:   Server\r\n";;
+		echo "ACK: SatarServerAPI\n";;
 	
 	// Print headers 
     // echo $result['header']; 
@@ -59,7 +59,7 @@ if ($result['status'] == 'ok'){
  
 }
 else {
-    echo 'ERR: SatarServerRuby-API: ' . $result['error']; 
+    echo 'ERR: SatarServerAPI: ' . $result['error']; 
 }
 
 
@@ -72,7 +72,7 @@ function post_request($url, $data, $referer='') {
     $url = parse_url($url);
  
     if ($url['scheme'] != 'http') { 
-        die('ERR: No valid HTTP request forged.');
+        die('ERR: Invalid HTTP req.');
     }
  
     // extract host and path:
