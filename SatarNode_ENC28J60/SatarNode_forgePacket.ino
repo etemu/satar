@@ -43,7 +43,7 @@ sendPacket(payload);
     unsigned long timer_micros_diff = micros()-timer_micros1;
     Serial.print("###: forgePacket executed in ");
     Serial.print(timer_micros_diff);
-    Serial.println(" us");
+    Serial.println(" us.");
   }
 }
 
