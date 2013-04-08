@@ -1,25 +1,32 @@
 <div class="row">
 	<div class="col6">
-		<h1>Debug</h1>
-		<div class="block fscroll">
+		<h1>Debug stream</h1>
+		<div class="block h400">
 			<table>
-				<thead>
-					<tr>
-						<th>event</th>
-					</tr>
-				</thead>
 				<tbody id="events">
 				</tbody>
 			</table>		
 		</div>
 	</div>
 	<div class="col6">
-		<h1>Status</h1>
+		<h1>System status</h1>
 		<div class="block">
+			<h2>Server</h2>
 			<ul>
-				<li>Version: 0.0.6</li>
-				<p>+ now prepending new events</p>
-				<p>+ added filter for the stream section (id = 1, id = 2)</p>				
+				<li>adress: 133.374.21.11</li>
+				<li>clients: 1</li>
+				<li>load: 0.01|0.13|0.37</li>
+				<li>uptime: 1h 20m</li>
+			</ul>
+			<h2>Nodes</h2>
+			<ul>
+				<li>node 1: armed | last packet: t-20s</li>
+				<li>node 2: dead  | last packet: t-5m</li>
+				<li>node 3: armed | last packet: t-20s</li>
+			</ul>
+			<h2>Database</h2>
+			<ul>
+				<li>entries: 1010101100</li>
 			</ul>
 		</div>
 	</div>
@@ -27,7 +34,7 @@
 
 <script>
 	// reading
-	var es = new EventSource('/stream');
+	var es = new EventSource('/api/stream/event');
 	es.onmessage = function(e) {
 		var data = e.data.split(';');
 		logToTable(data[1] + ' from node ' + data[0]);

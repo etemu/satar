@@ -17,33 +17,81 @@
  */
 
 $color_text: #3a3a3a
-$color_header_back: #0DBCE5 // #1B7AA3
+$color_header_back: #0099CC // #1B7AA3
 $color_back: #F2F2F2
 $color_text_light: #F2F2F2
+
+$height_header: 49px
+
+@font-face
+	font-family: "JuraLight"
+	src: url('/fonts/Jura-Light.ttf')
+@font-face
+	font-family: "JuraMedium"
+	src: url('/fonts/Jura-Medium.ttf')
+@font-face
+	font-family: "SourceCode"
+	src: url('/fonts/SourceCodePro-Regular.ttf')
 
 body
 	background: $color_back url('/images/noise.png') top left
 	color: $color_text
 	margin: 0
-	font-family: 'Helvetica Neue', Helvetica, sans-serif
+	font-family: SourceCode
+	min-width: 840px
+
+h1, h2, h3
+	text-transform: uppercase 
+	margin: 5px auto
+
+p
+	font-size: 12px
+h1
+	font-size: 200%
+h2
+	font-size: 140%
+ul
+	margin: 10px auto
+	list-style: none
+
 
 #header
+	// background: $color_header_back 
+	margin: 40px auto 20px auto
+	height: $height_header
 	background: $color_header_back 
+	.logo
+		background: url(/images/Header.svg)
+		background-repeat: no-repeat
+		height: 100px
+		margin-top: -25px
+		margin-left: -20px
+	
+#main
 	h1
-		font-size: 4em
-		color: $color_text_light
-		margin: 10px 0 10px 0
+		margin-bottom: 10px
+		font-family: JuraLight
+		text-shadow: 1px 1px #fff
 
+#footer
+	height: $height_header
+	background: $color_header_back 
+	position: fixed
+	bottom: 0
+	width: 100%
 
 #nav
+	font-size: 25px
+	float: right
+	font-family: JuraMedium
 	ul
 		float: right
 		list-style: none
+		margin-top: 14px
 		li
 			float: left
-			margin: 0 10px 0 10px
+			margin: 0 5px
 			a
-				font-size: 1.5em
 				text-decoration: none
 				text-transform: uppercase
 				color: $color_text
@@ -62,12 +110,12 @@ table
 .block
 	background: white
 	margin-bottom: 30px
-	padding: 10px 0
+	padding: 10px
 	box-shadow: 2px 2px 5px #888888
 	-webkit-box-shadow: 2px 2px 5px #888888
 	-moz-box-shadow: 2px 2px 5px #888888
 	-o-box-shadow: 2px 2px 5px #888888
 
-.fscroll
+.h400
 	height: 400px
 	overflow-y: scroll

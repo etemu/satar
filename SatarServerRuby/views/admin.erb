@@ -1,0 +1,17 @@
+<div class="row">
+	<div class="col12">
+		<h1>Admin</h1>
+		<div class="block">
+			<%= button_to "New", :action => "new" %>
+		</div>
+	</div>
+</div>
+
+<script>
+	// reading
+	var es = new EventSource('/stream');
+	es.onmessage = function(e) {
+		var data = e.data.split(';');
+		logToTable(data[1] + ' from node ' + data[0]);
+	};
+</script>
