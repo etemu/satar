@@ -18,9 +18,7 @@ The firmware is meant for a SATAR controller node, which
  the official Arduino Ethernet Shield and the Arduino 1.5.2 IDE
  and up until now, everything compiles fine on Arduino 1.0!
 
- etemu.com
- Alex Shure
- Leon Rische
+ 2013 etemu.com, Alex Shure, Leon Rische
 
 
 ```
