@@ -1,7 +1,12 @@
+void sendKeepalive(){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
+  unsigned int armedID = trigger_start_armed; // B0000000X
+  armedID=trigger_finish_armed << 1;  //B000000X0
+  forgePacket(millis(),0,armedID);
+}
 
 void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned int ID) {    
   if (DEBUG) {
-      unsigned long timeStampEvent = timer; //DEBUG
+    unsigned long timeStampEvent = timer; //DEBUG
   }
   unsigned long timer_micros1= micros();
 
@@ -9,48 +14,44 @@ void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned 
   String payloadString; // this is the whole payload, the package that will
   // be transmitted in the query. We will build a long string and then 
   // transform it toa char.
-  //payload mask  : 1234567890123456789012345678901234567890123456789012345678 (size= 48)
-  //payload packet: TSN=4294967295&EVENT=255&ID=4294967295&NODE=255            (size=<48)
-  payloadString+="TSN="; // append the TSN string to form the GET request
+  //payload mask  : 123456789012345678901234567890123456789012 (size= 42)
+  //payload packet: T=4294967295&E=255&I=4294967295&N=255      (size=<42)
+  payloadString+="T="; // append the TSN string to form the GET request
   payloadString+=timeStampEvent; // append the (long) time variable to the payload string
-  payloadString+="&EVENT="; 
+  payloadString+="&E="; 
   payloadString+=typeEvent; // 0=debug, 10=int_trigger(0), 11=int_trigger(1)
-  payloadString+="&ID="; 
+  payloadString+="&I="; 
   payloadString+=ID; // unsigned long, rider ID
-  payloadString+="&NODE="; 
-  payloadString+=nodeID; // hardcoded with #DEFINE, TODO: implement hardware Jumper setting
+  payloadString+="&N="; 
+  payloadString+=nodeID; // hardcoded with #DEFINE, TODO: implement hardware Jumper setting or EEPROM readout
 
-  char payload[64]; // this is the whole payload as a char array.
-  payloadString.toCharArray(payload, 64); // convert String into char* and fill the buffer
+if (cardLog){
+    logPacketToCard(payloadString); // Log the forged payload string to the SD card.
+  }
+
+  char payload[42]; // this is the whole payload as a char array.
+  payloadString.toCharArray(payload, 42); // convert String into char* and fill the buffer
 
   if (DEBUG) {
-    Serial.println("#DEBUG mode: timer, timeStampEvent, payload");
+    Serial.print("DEB: Timer  : ");
     Serial.println(timer);
-    Serial.println(timeStampEvent);
-    Serial.println(payloadString);
+    Serial.print("DEB: Payload: ");
     Serial.println(payload);
-  }
-  
-  Serial.println("\n>>> request");
+//    Serial.println(timeStampEvent);
+//    Serial.println(payloadString);
 
-  ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply);
+  }
+
+sendPacket(payload); //send out the forged packet to the ethernet chip via SPI
+
+  // client.println();  ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply); // ENC
 
   if (DEBUG) {
     unsigned long timer_micros_diff = micros()-timer_micros1;
-    Serial.println("#DEBUG mode: packet forging and transaction time in microseconds");
-    Serial.println(timer_micros_diff);
+    Serial.print("DEB: forgePacket executed in ");
+    Serial.print(timer_micros_diff);
+    Serial.println(" us.");
   }
-}
-
-// function eth_reply is called when the client request is complete
-static void eth_reply (byte status, word off, word len) {
-  Serial.print("<<< reply ");
-  Serial.print(millis() - timer);
-  Serial.println(" ms");
-  if (EthernetType==0){
-    Serial.println((const char*) Ethernet::buffer + off);
-  } // ENC
-  //   if (EthernetType==1){char c = client.read(); Serial.print(c);} // W5100
 }
 
 

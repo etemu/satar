@@ -34,15 +34,16 @@
 // 2.16 201304070317 Shure: no consistent connectivity (WIP)
 // 2.17 201304070400 Shure: outsource chip dependent code
 // 2.18 201304071818 Shure: implement code for ENC28J60
+// 2.19 201304081924 Shure: keepalive packet forging
 //
 ////////////////////////////////// BEGIN Config
 
 #define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
-#define nodeID 42 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
+#define nodeID 10 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
 #define REQUEST_RATE 30000 // request rate of webpage query in ms, for keepalive or debugging
-//#define W5100
+#define W5100
 //#define USE_SD // only together with W5100
-#define ETHERCARD
+//#define ETHERCARD
 
 
 // #include <EtherCard.h> // 
@@ -73,7 +74,7 @@ const short CS_ETH = 10; // ** CS - pin 10 for ethernet
 // #define EthernetType 1 // type of ethernet hardware: 0=Microchip ENC28J60, 1=Wiznet W5100
 #define DHCP 0 //disable or enable DHCP client NOTE: DHCP not yet implemented
 
-static byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0x06 }; // ethernet interface mac address
+static byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0x08 }; // ethernet interface mac address
 static char website[] = "etemu.com"; // remote server, TLD/vHost
 
 #ifdef W5100 //if using W5100

@@ -1,3 +1,8 @@
+void sendKeepalive(){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
+  unsigned int armedID = trigger_start_armed; // B0000000X
+  armedID=trigger_finish_armed << 1;  //B000000X0
+  forgePacket(millis(),0,armedID);
+}
 
 void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned int ID) {    
   if (DEBUG) {
@@ -28,20 +33,22 @@ if (cardLog){
   payloadString.toCharArray(payload, 42); // convert String into char* and fill the buffer
 
   if (DEBUG) {
-    Serial.println("###: timer, timeStampEvent, payloadString, payload");
+    Serial.print("DEB: Timer  : ");
     Serial.println(timer);
-    Serial.println(timeStampEvent);
-    Serial.println(payloadString);
+    Serial.print("DEB: Payload: ");
     Serial.println(payload);
+//    Serial.println(timeStampEvent);
+//    Serial.println(payloadString);
+
   }
 
-sendPacket(payload);
+sendPacket(payload); //send out the forged packet to the ethernet chip via SPI
 
   // client.println();  ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply); // ENC
 
   if (DEBUG) {
     unsigned long timer_micros_diff = micros()-timer_micros1;
-    Serial.print("###: forgePacket executed in ");
+    Serial.print("DEB: forgePacket executed in ");
     Serial.print(timer_micros_diff);
     Serial.println(" us.");
   }
