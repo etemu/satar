@@ -1,5 +1,4 @@
-satar
-=====
+![IMG](Graphics/SatarServerRuby_gui/SatarServer_header.png)
 
 System for Advanced Timekeeping and Amateur Racing.
 Compatible with the the Arduino platform. 
