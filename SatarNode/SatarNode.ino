@@ -40,14 +40,15 @@
 
 #define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
 #define nodeID 10 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
-#define REQUEST_RATE 30000 // request rate of webpage query in ms, for keepalive or debugging
+#define REQUEST_RATE 30000 // request rate of webpage query in ms, for debugging
+#define KEEPALIVE_RATE 32000 // request rate of sendKeepalive in ms
 #define W5100
 //#define USE_SD // only together with W5100
 //#define ETHERCARD
 
-
 // #include <EtherCard.h> // 
 #include <SPI.h>
+#include <Timer.h> //Timer lib for non blocking delay
 
 #ifdef USE_SD
 #include <SD.h> // library to interface the Micro-SD card
@@ -102,7 +103,7 @@ EthernetClient client;
 volatile boolean startTriggered=0; // flag which will be set to 1 in an ISR if the interrupt triggers
 volatile boolean finishTriggered=0; // same, but for second portpin (e.g. finish line)
 boolean trigger_start_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
-boolean trigger_finish_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
+boolean trigger_finish_armed=1; // 0 = not armed, 1 = trigger is armed and listens at input
 unsigned int debounceCountsStart=0;
 unsigned int debounceCountsFinish=0;
 unsigned long startTriggeredMillis=0; 
@@ -118,6 +119,8 @@ const int finishPin = 4;
 static long timer;
 static long timer_micros;
 static boolean cardLog=0;
+
+Timer t;
 
 void printRAM(){
   Serial.print("RAM: ");
@@ -203,30 +206,37 @@ digitalWrite(CS_ETH, LOW); // CS ethernet
 
 printRAM();
 
-}
+if (DEBUG) {
 
-void loop () {
-  #ifdef ETHERCARD
-    ether.packetLoop(ether.packetReceive()); //pump the network frequently to handle all incoming packets.
-  #endif
-  // DHCP expiration is a bit brutal, because all other ethernet activity and
-  // incoming packets will be ignored until a new lease has been acquired
-  //  if (ether.dhcpExpired() && !ether.dhcpSetup()) {
-  //    Serial.println("ERR: DHCP renewal failed.");
-  //  }
-
-  // checkTrigger0();
-  // checkTrigger1();
-  //  ether.packetLoop(ether.packetReceive());
-
-  if (DEBUG) {
-    if (millis() > timer + REQUEST_RATE) {
+  int tkeepalive = t.every(KEEPALIVE_RATE, sendKeepalive); // create a thread to send a heartbeat to the server
+  Serial.print("TIM: Heartbeat thread: ");
+  Serial.println(tkeepalive);
+  
+/*
+  if (millis() > timer + REQUEST_RATE) {
       timer = millis();
       #ifdef W5100
       forgePacket(timer,1,nodeID); //send a packet for testing purposes
       #endif
     }
-  }
+*/
+      #ifdef W5100
+      sendKeepalive();
+      //forgePacket(timer,1,nodeID); //send a packet for testing purposes
+      #endif
+ }
+}
+
+
+
+void loop () {
+  t.update(); //check for active timer threads
+  #ifdef ETHERCARD
+    ether.packetLoop(ether.packetReceive()); //pump the network frequently to handle all incoming packets.
+  #endif
+
+  // checkTrigger0();
+  // checkTrigger1();
   #ifdef W5100
   eth_reply_w5100(); // read out the ethernet buffer frequently.
   #endif

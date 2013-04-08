@@ -2,6 +2,9 @@ void sendKeepalive(){ // keepalive packet to the server, doubles as a status pac
   unsigned int armedID = trigger_start_armed; // B0000000X
   armedID=trigger_finish_armed << 1;  //B000000X0
   forgePacket(millis(),0,armedID);
+  #ifdef DEBUG
+  Serial.println("DEB: Emitting heartbeat <3.");
+  #endif
 }
 
 void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned int ID) {    
@@ -32,15 +35,14 @@ if (cardLog){
   char payload[42]; // this is the whole payload as a char array.
   payloadString.toCharArray(payload, 42); // convert String into char* and fill the buffer
 
-  if (DEBUG) {
+  #ifdef DEBUG
     Serial.print("DEB: Timer  : ");
     Serial.println(timer);
     Serial.print("DEB: Payload: ");
     Serial.println(payload);
 //    Serial.println(timeStampEvent);
 //    Serial.println(payloadString);
-
-  }
+  #endif
 
 sendPacket(payload); //send out the forged packet to the ethernet chip via SPI
 
