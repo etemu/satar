@@ -2,6 +2,27 @@
 
 System for Advanced Timekeeping and Amateur Racing.
 Compatible with the the Arduino platform. 
+
+The firmware is meant for a SATAR controller node, which
+ communicates to to a remote server over TCP/IP.
+ Hardware: Atmel AtMega 328 or higher, Microchip ENC28J60
+ or Wiznet W5100 via SPI, optional SD card at CSN4.
+ Uses hardware SPI enabled with eth0 SPI CSN at port 10.
+ AtMega clocked at 16Mhz, Microchip clocked at 25Mhz.
+ CC-BY-SA 3.0: This work is Open Source and licensed under
+ the Creative Commons Attribution-ShareAlike 3.0 License.
+ 
+ Compatible with the the Arduino platform.
+
+ I tried to have full compatibility with the Arduino Bootloader,
+ the official Arduino Ethernet Shield and the Arduino 1.5.2 IDE
+ and up until now, everything compiles fine on Arduino 1.0!
+
+ etemu.com
+ Alex Shure
+ Leon Rische
+
+
 ```
          __                                            
    ___  / /____  ____ ___  __  __  _________  ____ ___ CC
@@ -21,31 +42,16 @@ Compatible with the the Arduino platform.
   ___(_ (_`____/ () \__|_   _|__/ () \____| () )_____   
     .__)__)   /__/\__\   |_|   /__/\__\   |_|\_\
   System for Advanced Timekeeping and Amateur Racing.
-```
- This firmware is meant for a SATAR controller node, which
- communicates to to a remote server over TCP/IP.
- Hardware: Atmel AtMega 328 or higher, Microchip ENC28J60
- Uses hardware SPI enabled with eth0 SPI CSN at port 10.
- AtMega clocked at 16Mhz, Microchip clocked at 25Mhz.
- CC-BY-SA 3.0: This work is Open Source and licensed under
- the Creative Commons Attribution-ShareAlike 3.0 License.
  
- Compatible with the the Arduino platform.
-
- I tried to have full compatibility with the Arduino Bootloader,
- the official Arduino Ethernet Shield and the Arduino 1.0 IDE
- and up until now, everything compiles fine on Arduino 1.0!
-
- Alex Shure, 2012-05 
-
- ___      __    __                 
-/\_ \   /'__`\ /\ \                
-\//\ \ /\_\L\ \\ \ \/'\     ___    
-  \ \ \\/_/_\_<_\ \ , <   /' _ `\  
-   \_\ \_/\ \L\ \\ \ \\`\ /\ \/\ \ 
-   /\____\ \____/ \ \_\ \_\ \_\ \_\
-   \/____/\/___/   \/_/\/_/\/_/\/_/
-
+         ___      __    __                 
+        /\_ \   /'__`\ /\ \                
+        \//\ \ /\_\L\ \\ \ \/'\     ___    
+          \ \ \\/_/_\_<_\ \ , <   /' _ `\  
+           \_\ \_/\ \L\ \\ \ \\`\ /\ \/\ \ 
+           /\____\ \____/ \ \_\ \_\ \_\ \_\
+           \/____/\/___/   \/_/\/_/\/_/\/_/
+        
 Even more ASCII-Art
 
 Leon Rische, 2013-04
+```
