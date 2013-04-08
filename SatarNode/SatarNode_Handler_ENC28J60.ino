@@ -4,7 +4,7 @@ boolean lastConnected = false;
 
 static void eth_reply_ethercard (byte status, word off, word len) { // called when the client request is complete
   Serial.print("ETH: Reply in ");
-  Serial.print(millis() - timer);
+  Serial.print(millis() - timer_ms);
   Serial.println(" ms.");
   Serial.println((const char*) Ethernet::buffer + off);
 }

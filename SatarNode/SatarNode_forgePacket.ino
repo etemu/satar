@@ -1,7 +1,7 @@
 void sendKeepalive(){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
   unsigned int armedID = trigger_start_armed; // B0000000X
   armedID=trigger_finish_armed << 1;  //B000000X0
-  forgePacket(millis(),0,armedID);
+  forgePacket(millis(),1,armedID);
   #ifdef DEBUG
   Serial.println("DEB: Emitting heartbeat <3.");
   #endif
@@ -9,7 +9,7 @@ void sendKeepalive(){ // keepalive packet to the server, doubles as a status pac
 
 void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned int ID) {    
   if (DEBUG) {
-    unsigned long timeStampEvent = timer; //DEBUG
+    unsigned long timeStampEvent = timer_ms; //DEBUG
   }
   unsigned long timer_micros1= micros();
 
@@ -37,7 +37,7 @@ if (cardLog){
 
   #ifdef DEBUG
     Serial.print("DEB: Timer  : ");
-    Serial.println(timer);
+    Serial.println(timer_ms);
     Serial.print("DEB: Payload: ");
     Serial.println(payload);
 //    Serial.println(timeStampEvent);

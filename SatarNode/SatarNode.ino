@@ -40,8 +40,9 @@
 
 #define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
 #define nodeID 10 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
-#define REQUEST_RATE 30000 // request rate of webpage query in ms, for debugging
-#define KEEPALIVE_RATE 32000 // request rate of sendKeepalive in ms
+#define REQUEST_RATE 30000L // request rate of webpage query in ms, for debugging
+#define KEEPALIVE_RATE 5000L // request rate of sendKeepalive in ms
+
 #define W5100
 //#define USE_SD // only together with W5100
 //#define ETHERCARD
@@ -102,7 +103,7 @@ EthernetClient client;
 
 volatile boolean startTriggered=0; // flag which will be set to 1 in an ISR if the interrupt triggers
 volatile boolean finishTriggered=0; // same, but for second portpin (e.g. finish line)
-boolean trigger_start_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
+boolean trigger_start_armed=1; // 0 = not armed, 1 = trigger is armed and listens at input
 boolean trigger_finish_armed=1; // 0 = not armed, 1 = trigger is armed and listens at input
 unsigned int debounceCountsStart=0;
 unsigned int debounceCountsFinish=0;
@@ -116,8 +117,8 @@ const unsigned int triggerIntervalFinish=700;
 const int startPin = 2;	// the number of the input pin, ISR only at portpins 2 and 4 (AtMega328)
 const int finishPin = 4; 
 
-static long timer;
-static long timer_micros;
+static long timer_ms;
+static long timer_us;
 static boolean cardLog=0;
 
 Timer t;
@@ -172,7 +173,7 @@ void setup () {
   ether.printIp("ETH: Server IP: ", ether.hisip);
   #endif
   
-  timer = - REQUEST_RATE; // start timing out right away
+  timer_ms = - REQUEST_RATE; // start timing out right away
   // digitalWrite(startPin, HIGH); //20kOhm internal pull-up enable 
   // digitalWrite(finishPin, HIGH); //20kOhm internal pull-up enable
   // attachInterrupt(0, trigger_start, RISING); //0 = portpin 2
@@ -213,16 +214,16 @@ if (DEBUG) {
   Serial.println(tkeepalive);
   
 /*
-  if (millis() > timer + REQUEST_RATE) {
-      timer = millis();
+  if (millis() > timer_ms + REQUEST_RATE) {
+      timer_ms = millis();
       #ifdef W5100
-      forgePacket(timer,1,nodeID); //send a packet for testing purposes
+      forgePacket(timer_ms,1,nodeID); //send a packet for testing purposes
       #endif
     }
 */
       #ifdef W5100
       sendKeepalive();
-      //forgePacket(timer,1,nodeID); //send a packet for testing purposes
+      //forgePacket(timer_ms,1,nodeID); //send a packet for testing purposes
       #endif
  }
 }
