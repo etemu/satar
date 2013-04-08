@@ -2,7 +2,7 @@
 
 System for Advanced Timekeeping and Amateur Racing.
 Compatible with the the Arduino platform. 
-
+```
          __                                            
    ___  / /____  ____ ___  __  __  _________  ____ ___ CC
   / _ \/ __/ _ \/ __ `__ \/ / / / / ___/ __ \/ __ `__ \
@@ -21,7 +21,7 @@ Compatible with the the Arduino platform.
   ___(_ (_`____/ () \__|_   _|__/ () \____| () )_____   
     .__)__)   /__/\__\   |_|   /__/\__\   |_|\_\
   System for Advanced Timekeeping and Amateur Racing.
-
+```
  This firmware is meant for a SATAR controller node, which
  communicates to to a remote server over TCP/IP.
  Hardware: Atmel AtMega 328 or higher, Microchip ENC28J60
