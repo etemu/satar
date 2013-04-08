@@ -46,7 +46,7 @@ if ($result['status'] == 'ok'){
 		echo "WRN: SatarServerAPI ERR\n";
 		
 	if ($result['content']=='')
-		echo "ACK: SatarServerAPI\n";;
+		echo "ACK: SatarServerAPI\n";
 	
 	// Print headers 
     // echo $result['header']; 
