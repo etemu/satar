@@ -29,7 +29,7 @@
 
 <script>
 	// reading
-	var es = new EventSource('/api/stream/event');
+	var es = new EventSource('/api/stream/events');
 	es.onmessage = function(e) {
 		var data = e.data.split(';')
 		var value = $("#single").val();

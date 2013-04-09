@@ -4,7 +4,9 @@
 
 #########################################################
 # SatarServer Ruby by Leon Rische
-# version: 0.0.7
+# version: 0.0.8
+# 	+ database stuff
+# 	+ system status updating
 #########################################################
 #  ___      __    __                 
 # /\_ \   /'__`\ /\ \                
@@ -25,9 +27,10 @@ require 'sinatra'	# controller
 	# redis
 	#####################################################
 	
-# $redis = Redis.new(:path => "/home/l3kn/.redis/sock")
-redis = Redis.new(:host => "127.0.0.1", :port => 6379)
-redis.select(2)
+$redis = Redis.new(:path => "/home/l3kn/.redis/sock")
+#$redis = Redis.new(:host => "127.0.0.1", :port => 6379)
+$redis.select(2)
+$redis.flushdb
 
 	# sinatra
 	#####################################################
@@ -39,10 +42,9 @@ set :server, 'thin'
 # variables
 #########################################################
 
-connectionsEvent = [] #List all open connections
-connectionsSystem = [] #List all open connections
-connectionsResults = [] #List all open connections
-
+$connectionsEvent = [] #List all open $connections
+$connectionsSystem = [] #List all open $connections
+$connectionsResults = [] #List all open $connections
 
 #########################################################
 # routes
@@ -61,28 +63,34 @@ end
 get '/admin' do
 	protected!
 	erb :admin
-	#connections.each { |out| out << "data: hello\n\n" }
 end
 
 	# API
 	#####################################################
 
 post '/api/event' do
+	timestamp = params['TSN'].to_i
 	eventId = params['EVENT'].to_i
 	nodeId = params['NODE'].to_i
 	statusId = params['ID'].to_i
+
+	$connectionsEvent.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId}, E#{eventId}\n\n"}
 	case eventId
 		when 0
-			$redis.sadd('nodes:all', nodeId)
-			case statusId
-				when 0
-
-				else
-
-			end 	
+			$connectionsEvent.each { |out| out << "data: #{Time.now.to_i}:(#{nodeId}) booted up\n\n"}
+		when 1
+			if $redis.sadd('nodes', nodeId) == true
+				$redis.hset("node:#{nodeId}",'id',nodeId)
+				$connectionsEvent.each { |out| out << "data: #{Time.now.to_i}: Added new node (#{nodeId})\n\n"}
+			end
+			if $redis.hget("node:#{nodeId}",'status').to_i != statusId
+				$redis.hset("node:#{nodeId}",'status',statusId)
+				$connectionsEvent.each { |out| out << "data: #{Time.now.to_i}:(#{nodeId}) changed status to #{statusId.to_s(2)}\n\n"}
+			end
+		else
+			$connectionsEvent.each { |out| out << "data: unknown ID\n\n"}
 	end
-
-	connectionsEvent.each { |out| out << "data: #{params['ID']};#{params['TSN']}\n\n"}
+	updateSystemStatus
 	204 # response without entity body
 end
 
@@ -91,15 +99,15 @@ end
 
 get '/api/stream/events', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
-		connectionsEvent << out
-		out.callback { connectionsEvent.delete(out) }
+		$connectionsEvent << out
+		out.callback { $connectionsEvent.delete(out) }
 	end
 end
 
 get '/api/stream/system', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
-		connectionsSystem << out
-		out.callback { connectionsSystem.delete(out) }
+		$connectionsSystem << out
+		out.callback { $connectionsSystem.delete(out) }
 	end
 end
 
@@ -118,6 +126,25 @@ helpers do
 	def authorized?
 		@auth ||=	Rack::Auth::Basic::Request.new(request.env)
 		@auth.provided? && @auth.basic? && @auth.credentials && @auth.credentials == ['admin', 'admin']
+	end
+
+	def updateSystemStatus
+		base = "<h2>Nodes</h2><ul>"
+		for node in allNodes do
+			base += "<li>#{node['id']}, status=#{node['status'].to_i.to_s(2)}</li>"
+		end
+	 	base += "</ul>"
+
+		$connectionsSystem.each { |out| out << "data: #{base}\n\n"}
+	end
+	def allNodes
+	 	node_ids = $redis.smembers("nodes")
+	 	nodes = $redis.pipelined {
+	 		node_ids.each{|id|
+	 			$redis.hgetall("node:#{id}")
+	 		}
+	 	}
+	 	return nodes
 	end
 end
 
@@ -147,4 +174,9 @@ end
 # 
 # nodes:all
 # nodes:active
+# 
+# events.nodeID.id
+# events:nodeID:id = set
+# 
+# 
 	
