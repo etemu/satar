@@ -4,7 +4,9 @@
 
 #########################################################
 # SatarServer Ruby by Leon Rische
-# version: 0.0.8
+# 0.0.8b
+# 	+ config file
+# 0.0.8a
 # 	+ database stuff
 # 	+ system status updating
 #########################################################
@@ -20,6 +22,13 @@
 require 'redis'		# model
 require 'erb'		# view 
 require 'sinatra'	# controller
+require 'yaml'
+
+#########################################################
+# load the config
+#########################################################
+
+config = YAML.load_file("_config/config.yml")
 
 #########################################################
 # setup
@@ -27,15 +36,19 @@ require 'sinatra'	# controller
 	# redis
 	#####################################################
 	
-$redis = Redis.new(:path => "/home/l3kn/.redis/sock")
-#$redis = Redis.new(:host => "127.0.0.1", :port => 6379)
-$redis.select(2)
+if config['redis']['mode'] == 0
+	$redis = Redis.new(:path => config["redis"]["socket"])
+else
+	$redis = Redis.new(:host => config["redis"]["host"], :port => config["redis"]["port"])
+end
+
+$redis.select(config["redis"]["number"])
 $redis.flushdb
 
 	# sinatra
 	#####################################################
 
-set :port, 42337
+set :port, config["server"]["port"]
 set :server, 'thin'
 
 #########################################################
