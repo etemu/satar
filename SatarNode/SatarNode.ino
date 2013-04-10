@@ -39,7 +39,7 @@
 ////////////////////////////////// BEGIN Config
 
 #define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
-#define nodeID 10 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
+#define nodeID 11 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
 #define REQUEST_RATE 30000L // request rate of webpage query in ms, for debugging
 #define KEEPALIVE_RATE 5000L // request rate of sendKeepalive in ms
 
@@ -104,7 +104,7 @@ EthernetClient client;
 volatile boolean startTriggered=0; // flag which will be set to 1 in an ISR if the interrupt triggers
 volatile boolean finishTriggered=0; // same, but for second portpin (e.g. finish line)
 boolean trigger_start_armed=1; // 0 = not armed, 1 = trigger is armed and listens at input
-boolean trigger_finish_armed=1; // 0 = not armed, 1 = trigger is armed and listens at input
+boolean trigger_finish_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
 unsigned int debounceCountsStart=0;
 unsigned int debounceCountsFinish=0;
 unsigned long startTriggeredMillis=0; 
@@ -120,6 +120,7 @@ const int finishPin = 4;
 static long timer_ms;
 static long timer_us;
 static boolean cardLog=0;
+boolean LEDstate=LOW;
 
 Timer t;
 
@@ -208,12 +209,14 @@ digitalWrite(CS_ETH, LOW); // CS ethernet
 printRAM();
 
 if (DEBUG) {
-
-  int tkeepalive = t.every(KEEPALIVE_RATE, sendKeepalive); // create a thread to send a heartbeat to the server
-  Serial.print("TIM: Heartbeat thread: ");
-  Serial.println(tkeepalive);
+  pinMode(3, OUTPUT); //LED at pin 3
   
-/*
+/*  int tkeepalive = t.every(KEEPALIVE_RATE, sendKeepalive); // create a thread to send a heartbeat to the server
+  Serial.print(" PS: Heartbeat thread: ");
+  Serial.println(tkeepalive);
+  */
+  
+  /*
   if (millis() > timer_ms + REQUEST_RATE) {
       timer_ms = millis();
       #ifdef W5100
@@ -221,6 +224,14 @@ if (DEBUG) {
       #endif
     }
 */
+
+/*
+
+  int ledEvent = t.oscillate(3, 25, HIGH);
+  Serial.print(" PS: LED thread: ");
+  Serial.println(ledEvent);
+  */
+  
       #ifdef W5100
       sendKeepalive();
       //forgePacket(timer_ms,1,nodeID); //send a packet for testing purposes
@@ -231,15 +242,23 @@ if (DEBUG) {
 
 
 void loop () {
+
+  delay(10);
+  
   t.update(); //check for active timer threads
+  // checkTrigger0();
+  // checkTrigger1();
+  
+//  timer_ms=millis();
+//  timer_us=micros();
+  digitalWrite(3, HIGH); //LED at pin 3 as freeze-indicator  
   #ifdef ETHERCARD
     ether.packetLoop(ether.packetReceive()); //pump the network frequently to handle all incoming packets.
   #endif
-
-  // checkTrigger0();
-  // checkTrigger1();
+  
   #ifdef W5100
   eth_reply_w5100(); // read out the ethernet buffer frequently.
   #endif
+  digitalWrite(3, LOW); //LED at pin 3 as freeze-indicator
 }
 
