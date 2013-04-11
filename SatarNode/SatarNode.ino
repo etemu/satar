@@ -49,7 +49,7 @@
 
 // #include <EtherCard.h> // 
 #include <SPI.h>
-#include <Timer.h> //Timer lib for non blocking delay
+//#include <Timer.h> //Timer lib for non blocking delay
 
 #ifdef USE_SD
 #include <SD.h> // library to interface the Micro-SD card
@@ -122,7 +122,7 @@ static long timer_us;
 static boolean cardLog=0;
 boolean LEDstate=LOW;
 
-Timer t;
+// Timer t; // Timer lib for non-blocking periodic calls
 
 void printRAM(){
   Serial.print("RAM: ");
@@ -211,7 +211,7 @@ printRAM();
 if (DEBUG) {
   pinMode(3, OUTPUT); //LED at pin 3
   
-/*  int tkeepalive = t.every(KEEPALIVE_RATE, sendKeepalive); // create a thread to send a heartbeat to the server
+/*  int tkeepalive = t.every(KEEPALIVE_RATE, sendHeartbeat); // create a thread to send a heartbeat to the server
   Serial.print(" PS: Heartbeat thread: ");
   Serial.println(tkeepalive);
   */
@@ -233,7 +233,7 @@ if (DEBUG) {
   */
   
       #ifdef W5100
-      sendKeepalive();
+      sendHeartbeat();
       //forgePacket(timer_ms,1,nodeID); //send a packet for testing purposes
       #endif
  }
@@ -245,7 +245,7 @@ void loop () {
 
   delay(10);
   
-  t.update(); //check for active timer threads
+  // t.update(); //check for active timer threads //Timer lib for non blocking delay
   // checkTrigger0();
   // checkTrigger1();
   

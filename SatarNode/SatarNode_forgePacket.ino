@@ -1,6 +1,6 @@
-void sendKeepalive(){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
+void sendHeartbeat(){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
   unsigned int armedID = 0;
-  armedID = trigger_start_armed << 0; // B0000000X
+  armedID = trigger_start_armed; // B0000000X
   armedID = trigger_finish_armed << 1;  //B000000X0
   forgePacket(millis(),1,armedID);
   #ifdef DEBUG
