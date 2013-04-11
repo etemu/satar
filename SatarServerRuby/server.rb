@@ -1,9 +1,9 @@
 #!/usr/bin/env ruby -I ../lib -I lib
 # coding: utf-8
-#
-
 #########################################################
 # SatarServer Ruby by Leon Rische
+# 0.0.9
+#   + form for stream events
 # 0.0.8b
 # 	+ config file
 # 0.0.8a
@@ -28,7 +28,7 @@ require 'yaml'
 # load the config
 #########################################################
 
-config = YAML.load_file("_config/config.yml")
+config = YAML.load_file("./_config/config.yml")
 
 #########################################################
 # setup
@@ -54,11 +54,15 @@ set :server, 'thin'
 #########################################################
 # variables
 #########################################################
+	# streaming
+	#####################################################
 
-$connectionsEvent = [] #List all open $connections
-$connectionsSystem = [] #List all open $connections
-$connectionsResults = [] #List all open $connections
+$connectionsDebug = [] # Debuglog
+$connectionsEvent = [] # Trigger events
+$connectionsSystem = [] # System status 
+$connectionsResults = [] # pairs of trigger events
 
+$trigger = 0
 #########################################################
 # routes
 #########################################################
@@ -87,33 +91,56 @@ post '/api/event' do
 	nodeId = params['NODE'].to_i
 	statusId = params['ID'].to_i
 
-	$connectionsEvent.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId}, E#{eventId}\n\n"}
+	$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId}, E#{eventId}\n\n"}
 	case eventId
-		when 0
-			$connectionsEvent.each { |out| out << "data: #{Time.now.to_i}:(#{nodeId}) booted up\n\n"}
+		# bootup
+		# ###############################################
+		when 0 
+			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}:(#{nodeId}) booted up\n\n"}
+			addNode(nodeId)
+
+		# status/keepalive
+		# ###############################################
 		when 1
-			if $redis.sadd('nodes', nodeId) == true
-				$redis.hset("node:#{nodeId}",'id',nodeId)
-				$connectionsEvent.each { |out| out << "data: #{Time.now.to_i}: Added new node (#{nodeId})\n\n"}
-			end
+			addNode(nodeId)
 			if $redis.hget("node:#{nodeId}",'status').to_i != statusId
 				$redis.hset("node:#{nodeId}",'status',statusId)
-				$connectionsEvent.each { |out| out << "data: #{Time.now.to_i}:(#{nodeId}) changed status to #{statusId.to_s(2)}\n\n"}
+				$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}:(#{nodeId}) changed status to #{statusId.to_s(2)}\n\n"}	
 			end
+
+		# trigger
+		# ###############################################
+		when 100
+			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered\n\n"}
+			$redis.sadd("event:#{nodeId}", timestamp)
+			timestring = Time.at(timestamp).strftime("%H:%M:%S,%L")
+			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{$trigger}\n\n"}
+			$trigger+=1
+		# other stuff
+		# ###############################################
 		else
-			$connectionsEvent.each { |out| out << "data: unknown ID\n\n"}
+			$connectionsDebug.each { |out| out << "data: unknown event\n\n"}
 	end
 	updateSystemStatus
 	204 # response without entity body
 end
 
+		# connect event /e rider
+		################################################
+
+post '/api/event/:nodeID/:eventID' do
+	riderId = params['riderId'].to_i
+	$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: connected event #{params[:eventID]}/#{params[:nodeID]} with rider #{riderId}\n\n"}
+	204
+end
+
 	# streaming
 	#####################################################
 
-get '/api/stream/events', :provides => 'text/event-stream' do
+get '/api/stream/debug', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
-		$connectionsEvent << out
-		out.callback { $connectionsEvent.delete(out) }
+		$connectionsDebug << out
+		out.callback { $connectionsDebug.delete(out) }
 	end
 end
 
@@ -124,12 +151,21 @@ get '/api/stream/system', :provides => 'text/event-stream' do
 	end
 end
 
+get '/api/stream/events', :provides => 'text/event-stream' do
+	stream :keep_open do |out|
+		$connectionsEvent << out
+		out.callback { $connectionsEvent.delete(out) }
+	end
+end
 
 #########################################################
 # helpers
 #########################################################
 
 helpers do
+	
+	# authentication 
+	#####################################################
 	def protected!
 		unless authorized?
 			response['WWW-Authenticate'] = %(Basic realm="Restricted Area")
@@ -141,6 +177,8 @@ helpers do
 		@auth.provided? && @auth.basic? && @auth.credentials && @auth.credentials == ['admin', 'admin']
 	end
 
+	# system status
+	#####################################################
 	def updateSystemStatus
 		base = "<h2>Nodes</h2><ul>"
 		for node in allNodes do
@@ -159,6 +197,15 @@ helpers do
 	 	}
 	 	return nodes
 	end
+
+	# db helpers
+	#####################################################
+	def addNode(nodeId)
+		if $redis.sadd('nodes', nodeId) == true
+			$redis.hset("node:#{nodeId}",'id',nodeId)
+			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: Added new node (#{nodeId})\n\n"}
+		end
+	end
 end
 
 #########################################################
@@ -175,21 +222,15 @@ end
 	# packets
 	#####################################################
 
-# keepalive/status 
-# event = 1 id = 0..255
-# 0 0 0 0 0 0 0 0 -> unarmed
-# 0 0 0 0 0 0 1 1  -> in 1 & 2 armed
+# event = 0 id = foo => bootup
+# event = 1 id = 0..255 => status
+	# 0 0 0 0 0 0 0 0 -> unarmed
+	# 0 0 0 0 0 0 1 1  -> in 1 & 2 armed
+# event = 100 id = foo => trigger
 
 #########################################################
 # database
 #########################################################
-# Sets:
-# 
-# nodes:all
-# nodes:active
-# 
-# events.nodeID.id
-# events:nodeID:id = set
-# 
-# 
-	
+# nodes => set /w all nodes
+# node:id => hashes
+# events:id => set /w all nodes a node sent

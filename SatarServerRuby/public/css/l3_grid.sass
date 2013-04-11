@@ -1,0 +1,55 @@
+/*
+ * l3 grid 0.9.5 by Leon Rische \ http://www.twitter.com/l3kn \ http://www.l3kn.de 
+ * TODO
+ * -documentation (jsfiddel?)
+ * -example page
+ * VERSIONS
+ * -0.9.5 replaced the .full class with m-full & m-hidden which will set the width of an element to 100% or 0% on mobile devices
+ * -0.9.4 reduced code size (css magic: border & margin) & clearfix & removed minix & fixed for-loop
+ * -0.9.3 media responsive with the .full class
+ */
+
+$col_count: 12
+$col_padding: 1%
+$col_gutter: 10px
+$col_width: 100% / $col_count
+
+.container
+	padding: 0 20px
+
+.row
+	@extend .cf // rows should use cf by default
+	margin-left: -$col_gutter // some css magic, not "gutter" for the first element
+	[class*="col"]
+		border: 0px solid rgba(0,0,0,0)
+		border-left-width: $col_gutter
+		float: left
+		-webkit-box-sizing: border-box
+		-moz-box-sizing: border-box
+		box-sizing: border-box
+		-moz-background-clip: padding-box !important
+		-webkit-background-clip: padding-box !important
+		background-clip: padding-box !important
+
+@for $i from 1 through $col_count
+	.row .col#{$i} 
+		width: $col_width * $i
+		padding: 0 $col_padding
+	.row .offset#{$i}
+		border-left-width: $col_gutter * ($i - 1)
+		margin-left: $col_width * $i
+
+.cf	// clearfix hack
+	zoom: 1
+	&:before, &:after
+		content: ""
+		display: table
+	&:after
+		clear: both		
+
+@media (max-width:600px)
+	.m-hidden
+		display: none
+	.m-full
+		width: 100% !important
+		margin-left: 0px !important

@@ -2,19 +2,7 @@
  * Don't edit the css file, sass is more awesome!        *
  * sudo gem install sass                                 *
  * sass --watch public/css/main.sass.public/css/main.css *
- *********************************************************    
- *        __
- *       / /
- *      / /
- *     / / 
- *    / /____
- *   /____  / 
- *     __/ /
- *    /_  / 
- *  ___/ /
- * /____/  ASCII-ART? KANN ICH AUCH
- * 
- */
+ *********************************************************     */
 @font-face {
   font-family: "JuraLight";
   src: url("/fonts/Jura-Light.ttf"); }
@@ -62,10 +50,12 @@ ul {
     margin-top: -25px;
     margin-left: -20px; }
 
-#main h1 {
-  margin-bottom: 10px;
-  font-family: JuraLight;
-  text-shadow: 1px 1px white; }
+#main {
+  margin-bottom: 49px; }
+  #main h1 {
+    margin-bottom: 10px;
+    font-family: JuraLight;
+    text-shadow: 1px 1px white; }
 
 #footer {
   height: 49px;

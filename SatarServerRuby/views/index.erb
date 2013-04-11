@@ -17,7 +17,7 @@
 
 <script>
 	// reading
-	var es = new EventSource('/api/stream/events');
+	var es = new EventSource('/api/stream/debug');
 	var ss = new EventSource('/api/stream/system');
 	es.onmessage = function(e) {
 		logToTable(e.data);
