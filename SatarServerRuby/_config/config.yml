@@ -1,7 +1,7 @@
 redis:
   number: 2
   mode: 1
-  socket: '/home/l3kn/.redis/sock' 
+  socket: '/home/testuser/.redis/sock' 
   host: '127.0.0.1'
   port: 6379 
 
