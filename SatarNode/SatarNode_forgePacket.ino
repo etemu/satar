@@ -1,12 +1,4 @@
-void sendHeartbeat(){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
-  unsigned int armedID = 0;
-  armedID = trigger_start_armed; // B0000000X
-  armedID = trigger_finish_armed << 1;  //B000000X0
-  forgePacket(millis(),1,armedID);
-  #ifdef DEBUG
-  Serial.println("DEB: Emitting heartbeat <3.");
-  #endif
-}
+
 
 void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned int ID) {    
   if (DEBUG) {
@@ -41,8 +33,9 @@ if (cardLog){
     Serial.println(timer_ms);
     Serial.print("DEB: Payload: ");
     Serial.println(payload);
-//    Serial.println(timeStampEvent);
-//    Serial.println(payloadString);
+    Serial.print("DEB: Forged in: ");
+    Serial.print(micros()-timer_micros1);
+    Serial.println(" us.");
   #endif
 
 sendPacket(payload); //send out the forged packet to the ethernet chip via SPI
@@ -50,9 +43,8 @@ sendPacket(payload); //send out the forged packet to the ethernet chip via SPI
   // client.println();  ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply); // ENC
 
   if (DEBUG) {
-    unsigned long timer_micros_diff = micros()-timer_micros1;
-    Serial.print("DEB: forgePacket executed in ");
-    Serial.print(timer_micros_diff);
+    Serial.print("DEB: Executed in ");
+    Serial.print(micros()-timer_micros1);
     Serial.println(" us.");
   }
 }

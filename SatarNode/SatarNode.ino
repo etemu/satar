@@ -41,7 +41,7 @@
 #define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
 #define nodeID 11 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
 #define REQUEST_RATE 30000L // request rate of webpage query in ms, for debugging
-#define KEEPALIVE_RATE 5000L // request rate of sendKeepalive in ms
+#define KEEPALIVE_RATE 32000L // request rate of sendKeepalive in ms
 
 #define W5100
 //#define USE_SD // only together with W5100
@@ -80,8 +80,10 @@ static byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0x08 }; // ethernet interfac
 static char website[] = "etemu.com"; // remote server, TLD/vHost
 
 #ifdef W5100 //if using W5100
-IPAddress ip(192,168,8,nodeID); // static IP if DHCP is disabled
-IPAddress gw(192,168,8, 1); // static gateway IP if DHCP is disabled
+
+// IPAddress ip(192,168,8,nodeID); // static IP if DHCP is disabled
+IPAddress ip(192,168,23,250); // static IP if DHCP is disabled
+IPAddress gw(192,168,23, 1); // static gateway IP if DHCP is disabled
 IPAddress subnet(255, 255, 255, 0); // static subnet if DHCP is disabled
 #endif
 
@@ -99,6 +101,7 @@ byte Ethernet::buffer[400];   // tcp/ip buffer for ENC28J60
 
 #ifdef W5100
 EthernetClient client;
+//EthernetServer server;
 #endif
 
 volatile boolean startTriggered=0; // flag which will be set to 1 in an ISR if the interrupt triggers
@@ -132,6 +135,16 @@ void printRAM(){
   Serial.print("?"); //FreeRam() is included in the SD card lib - we can't use it if we don't use the lib.
   #endif
   Serial.println(" bytes free.");
+}
+
+void sendStatus(int nodeStatus=2){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
+  #ifdef DEBUG
+  Serial.println("DEB: Emit heartbeat <3.");
+  #endif
+  unsigned int armedID = 0;
+  armedID = trigger_start_armed; // B0000000X
+  armedID = trigger_finish_armed << 1;  //B000000X0
+  forgePacket(millis(),nodeStatus,armedID);
 }
 
 void setup () {
@@ -216,14 +229,7 @@ if (DEBUG) {
   Serial.println(tkeepalive);
   */
   
-  /*
-  if (millis() > timer_ms + REQUEST_RATE) {
-      timer_ms = millis();
-      #ifdef W5100
-      forgePacket(timer_ms,1,nodeID); //send a packet for testing purposes
-      #endif
-    }
-*/
+
 
 /*
 
@@ -233,7 +239,7 @@ if (DEBUG) {
   */
   
       #ifdef W5100
-      sendHeartbeat();
+      sendStatus();
       //forgePacket(timer_ms,1,nodeID); //send a packet for testing purposes
       #endif
  }
@@ -252,6 +258,7 @@ void loop () {
 //  timer_ms=millis();
 //  timer_us=micros();
   digitalWrite(3, HIGH); //LED at pin 3 as freeze-indicator  
+  
   #ifdef ETHERCARD
     ether.packetLoop(ether.packetReceive()); //pump the network frequently to handle all incoming packets.
   #endif
@@ -259,6 +266,14 @@ void loop () {
   #ifdef W5100
   eth_reply_w5100(); // read out the ethernet buffer frequently.
   #endif
+  
+  /* if (millis() > timer_ms + KEEPALIVE_RATE) {
+      timer_ms = millis();
+      #ifdef W5100
+      sendStatus(1); //send a packet for testing purposes
+      #endif
+    }
+  */
   digitalWrite(3, LOW); //LED at pin 3 as freeze-indicator
 }
 
