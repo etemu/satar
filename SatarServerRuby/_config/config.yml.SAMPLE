@@ -7,3 +7,4 @@ redis:
 
 server:
   port: 42337
+  bind: 0.0.0.0

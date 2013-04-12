@@ -49,6 +49,7 @@ $redis.flushdb
 	#####################################################
 
 set :port, config["server"]["port"]
+set :bind, config["server"]["bind"]
 set :server, 'thin'
 
 #########################################################
