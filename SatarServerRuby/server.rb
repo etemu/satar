@@ -117,27 +117,26 @@ post '/api/event' do
 		# eventId >= 100: hardware event!
 		# eventId 101: trigger at node input 1
 		# ###############################################
-<<<<<<< HEAD
-		when 101
-			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered Input 1\n\n"}
-			$redis.sadd("event:#{nodeId}", timestamp)
-			timestring = Time.at(timestamp).strftime("%H:%M:%S,%L")
-			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{$trigger}\n\n"}
-			$trigger+=1
-		
-		# eventId 102: trigger at node input 1
-		# ###############################################
-		when 102
-			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered Input 2\n\n"}
-			$redis.sadd("event:#{nodeId}", timestamp)
-			timestring = Time.at(timestamp).strftime("%H:%M:%S,%L")
-			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{$trigger}\n\n"}
-			$trigger+=1
-			
-=======
-		when 100
+
+#		when 101
+#			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered Input 1\n\n"}
+#			$redis.sadd("event:#{nodeId}", timestamp)
+#			timestring = Time.at(timestamp).strftime("%H:%M:%S,%L")
+#			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{$trigger}\n\n"}
+#			$trigger+=1
+#		
+#		# eventId 102: trigger at node input 1
+#		# ###############################################
+#		when 102
+#			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered Input 2\n\n"}
+#			$redis.sadd("event:#{nodeId}", timestamp)
+#			timestring = Time.at(timestamp).strftime("%H:%M:%S,%L")
+#			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{$trigger}\n\n"}
+#			$trigger+=1
+
+		when 100<=eventId<=120
 			# log it
-			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered\n\n"}
+			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered input #{eventId-100}\n\n"}
 
 			# 1. save it /w an unique id in a set
 			# 2. set its hash to its timestamp
@@ -152,7 +151,6 @@ post '/api/event' do
 			timestring = Time.at(timestamp).strftime("%H:%M:%S,%L")
 			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{eventKey}\n\n"}
 
->>>>>>> added a function to calculate timediffs
 		# other stuff
 		# ###############################################
 		else
