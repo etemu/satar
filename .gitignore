@@ -1,3 +1,5 @@
 *config.php
 *config.yml
 .DS_Store
+
+*.yml

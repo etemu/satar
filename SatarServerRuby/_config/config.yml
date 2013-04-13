@@ -1,9 +1,13 @@
 redis:
   number: 2
+  # select a redis instance
   mode: 1
+  # 1 = redis is running on a port
+  # 0 = redis is running on a socket
   socket: '/home/testuser/.redis/sock' 
   host: '127.0.0.1'
   port: 6379 
 
 server:
   port: 42337
+  # port for the web server
