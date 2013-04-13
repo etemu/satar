@@ -94,7 +94,8 @@ post '/api/event' do
 
 	$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId}, E#{eventId}\n\n"}
 	case eventId
-		# bootup
+		# eventId<100: status packet! 
+		# status/bootup
 		# ###############################################
 		when 0 
 			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}:(#{nodeId}) booted up\n\n"}
@@ -109,18 +110,29 @@ post '/api/event' do
 				$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}:(#{nodeId}) changed status to #{statusId.to_s(2)}\n\n"}	
 			end
 
-		# trigger
+		# eventId >= 100: hardware event!
+		# eventId 101: trigger at node input 1
 		# ###############################################
-		when 100
-			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered\n\n"}
+		when 101
+			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered Input 1\n\n"}
 			$redis.sadd("event:#{nodeId}", timestamp)
 			timestring = Time.at(timestamp).strftime("%H:%M:%S,%L")
 			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{$trigger}\n\n"}
 			$trigger+=1
+		
+		# eventId 102: trigger at node input 1
+		# ###############################################
+		when 102
+			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered Input 2\n\n"}
+			$redis.sadd("event:#{nodeId}", timestamp)
+			timestring = Time.at(timestamp).strftime("%H:%M:%S,%L")
+			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{$trigger}\n\n"}
+			$trigger+=1
+			
 		# other stuff
 		# ###############################################
 		else
-			$connectionsDebug.each { |out| out << "data: unknown event\n\n"}
+			$connectionsDebug.each { |out| out << "data: unknown eventID\n\n"}
 	end
 	updateSystemStatus
 	204 # response without entity body
@@ -183,7 +195,7 @@ helpers do
 	def updateSystemStatus
 		base = "<h2>Nodes</h2><ul>"
 		for node in allNodes do
-			base += "<li>#{node['id']}, status=#{node['status'].to_i.to_s(2)}</li>"
+			base += "<li>#{node['id'].to_s.rjust(3,"&nbsp;")}: status at #{node['status'].to_i.to_s(2).rjust(3,"0")}</li>"
 		end
 	 	base += "</ul>"
 
