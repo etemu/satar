@@ -1,27 +1,10 @@
-<script>
-	// reading
-	var es = new EventSource('/api/stream/events');
-	es.onmessage = function(e) {
-		var data = e.data.split(';');
-		var nodeId = data[0];
-		var value = $("#node").val();
-		var eventId = data[2];
-		if (value == nodeId)
-		{
-			var form = '<form action="/api/event/'+nodeId+'/'+eventId+'" method="post"><input type="number" name="riderId" id="node" value="1"/><input type="submit" value="Submit" /></form>'
-			$('#events').prepend('<tr><td>'+data[1]+'  riderID:'+form+'</td></tr>');
-		}
-	};
-</script>
-
 <div class="row">
 	<div class="col12">
 		<h1>Events</h1>
 		<div class="block fscroll">
-			<table>
-				<tbody id="events">
-				</tbody>
-			</table>		
+			<div id="events">
+				
+			</div>
 		</div>
 	</div>
 </div>
@@ -36,3 +19,29 @@
 </div>
 
 
+<script>
+	// reading
+	var es = new EventSource('/api/stream/events');
+	es.onmessage = function(e) {
+		var data = e.data.split(';');
+		var nodeId = data[0];
+		var value = $("#node").val();
+		var eventId = data[2];
+		if (value == nodeId)
+		{
+			var form = '<form action="/api/event/'+nodeId+'/'+eventId+'" method="post"> \
+							<input type="number" name="riderId" id="node" value="1"/> \
+							<input class="submit" type="submit" onclick="$(\'#ev'+eventId+'\').css(\'background\',\'gray\');" value="Submit" /> \
+						</form>';
+			var wrapper = '<div class="row" id="ev'+eventId+'">';
+			$('#events').prepend(wrapper+data[1]+'  riderID:'+form+'</div>');
+		}
+	};
+	$("input").one( "click", function() {
+		$( this ).css( "width", "+=200" );
+	});
+
+</script>
+
+<!-- onclick="$(this).css("background", "red")" -->
+<!-- <input class="submit" type="submit" onclick="$(\'#ev'+eventId+'\').remove();" value="Submit" /> \ -->

@@ -78,6 +78,10 @@ get '/stream' do
 	erb :stream
 end
 
+get '/results' do
+	erb :results
+end
+
 get '/admin' do
 	protected!
 	erb :admin
@@ -172,8 +176,9 @@ post '/api/event/:nodeID/:eventKey' do
 	else
 		time1 = $redis.get("events:#{eventKey2}")
 		time2 = $redis.get("events:#{eventKey}")
-		diff = time2.to_i - time1.to_i
-		$connectionsDebug.each { |out| out << "data: got a time of #{diff.abs} for rider #{riderId}\n\n"}
+		diff = (time2.to_i - time1.to_i).abs
+		$connectionsDebug.each { |out| out << "data: got a time of #{diff} for rider #{riderId}\n\n"}
+		$connectionsResults.each { |out| out << "data: #{riderId};#{diff}\n\n"}
 	end
 
 	204
@@ -200,6 +205,13 @@ get '/api/stream/events', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
 		$connectionsEvent << out
 		out.callback { $connectionsEvent.delete(out) }
+	end
+end
+
+get '/api/stream/results', :provides => 'text/event-stream' do
+	stream :keep_open do |out|
+		$connectionsResults << out
+		out.callback { $connectionsResults.delete(out) }
 	end
 end
 

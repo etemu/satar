@@ -1,0 +1,21 @@
+<div class="row">
+	<div class="col12">
+		<h1>Events</h1>
+		<div class="block fscroll">
+			<div id="events">
+				
+			</div>
+		</div>
+	</div>
+</div>
+
+<script>
+	// reading
+	var es = new EventSource('/api/stream/results');
+	es.onmessage = function(e) {
+		var data = e.data.split(';');
+		var riderId = data[0];
+		var time = data[1];
+		$('#events').prepend('<div>rider '+data[0]+' just finished with a time of '+data[1]+'seconds</div>');
+	};
+</script>
