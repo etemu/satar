@@ -4,11 +4,11 @@ boolean lastConnected = false;
 
 void sendPacket(char* payload){
 
-  Serial.print("ETH: Connect SatarServer... ");
+  Serial.print("ETH: Contact SatarServer.. ");
   
-  // if (client.connect(website, 80)) {
-    if (client.connect(website_ip, 80)) {
-    Serial.println("Done!");
+  // if (client.connect(website, 80)) { // use DNS to lookup website. e.g. in WAN
+    if (client.connect(website_ip, 80)) { // use IP, do not resolve DNS. e.g. in LAN
+    Serial.println("ACK.");
     client.print("GET ");
     client.print(website_url);
     client.print("?");
@@ -26,24 +26,28 @@ void sendPacket(char* payload){
 // function eth_reply_w5100 is called when the client request is complete
 static void eth_reply_w5100()
 { 
+  unsigned long timer_us2 = micros()-timer_us;
   boolean printingPacket = false;
   char lastEthPacket;
-  
+  unsigned long timer_ms2 = millis();
   while (client.available()) {
     char c = client.read();
     if (c == '\r' && lastEthPacket == '\n') { // leave out the header, just print the content
         printingPacket=1; }
     if (printingPacket){ Serial.print(c); }
     lastEthPacket=c;
-  }
-
+  
  if (!client.connected() && lastConnected) {
-    Serial.print("ETH: Reply in ");
-    Serial.print(millis()-timer_ms);
-    Serial.print(" us, stopping client... ");
+    Serial.print("ETH: Answer in ");
+    Serial.print(timer_us2);
+    Serial.println(" us");
+    Serial.print("ETH: Parsing time: ");
+    Serial.print(millis()-timer_ms2);
+    Serial.print(" ms, stopping client.. ");
     client.stop();
-    Serial.println("Done!");
+    Serial.println("ACK");
   }
  lastConnected = client.connected();
+ }
 }
 #endif

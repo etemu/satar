@@ -126,21 +126,18 @@ const unsigned int triggerIntervalFinish=700;
 const int startPin = 2;	// the number of the input pin, ISR only at portpins 2 and 4 (AtMega328)
 const int finishPin = 4; 
 
-static long timer_ms;
-static long timer_us;
-static boolean cardLog=0;
-boolean LEDstate=LOW;
+unsigned long timer_ms = 0;
+unsigned long timer_us = 0;
+static boolean cardLog = 0;
 
 // Timer t; // Timer lib for non-blocking periodic calls
 
 void printRAM(){
-  Serial.print("RAM: ");
   #ifdef USE_SD
+  Serial.print("RAM: ");
   Serial.print(FreeRam());
-  #else
-  Serial.print("?"); //FreeRam() is included in the SD card lib - we can't use it if we don't use the lib.
-  #endif
   Serial.println(" bytes free.");
+  #endif
 }
 
 void sendStatus(int nodeStatus=1){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
@@ -201,7 +198,6 @@ void setup () {
   ether.printIp("ETH: Server IP: ", ether.hisip);
   #endif
   
-  timer_ms = - REQUEST_RATE; // start timing out right away
   // digitalWrite(startPin, HIGH); //20kOhm internal pull-up enable 
   // digitalWrite(finishPin, HIGH); //20kOhm internal pull-up enable
   // attachInterrupt(0, trigger_start, RISING); //0 = portpin 2
@@ -220,7 +216,7 @@ digitalWrite(CS_SD, LOW); // CS SD
   else {
     Serial.println(" SD: Card initialized.");
     static boolean cardLog=1;
-    logPacketToCard("REBOOT"); //
+    logPacketToCard("BOOT"); //
     // logPacketToCard("DEBUGDEBUG"); // debug
     // logPacketToCard("TripleDebug"); // debug
   }
@@ -234,44 +230,41 @@ digitalWrite(CS_ETH, LOW); // CS ethernet
 //============= END SD CARD INIT
 
 printRAM();
+pinMode(3, OUTPUT); // LED at pin 3, on when busy with sending and receiving in subfunction.
 
-if (DEBUG) {
-  pinMode(3, OUTPUT); //LED at pin 3
-  
+#ifdef DEBUG
 /*  int tkeepalive = t.every(KEEPALIVE_RATE, sendHeartbeat); // create a thread to send a heartbeat to the server
   Serial.print(" PS: Heartbeat thread: ");
   Serial.println(tkeepalive);
   */
-  
-
-
 /*
-
   int ledEvent = t.oscillate(3, 25, HIGH);
   Serial.print(" PS: LED thread: ");
   Serial.println(ledEvent);
   */
-  
-      #ifdef W5100
-      sendStatus(0);
-      //forgePacket(timer_ms,1,nodeID); //send a packet for testing purposes
-      #endif
- }
+#endif
+
+  sendStatus(0); // send the initial status packet, 0 = bootup successful
 }
 
 
 
 void loop () {
 
-  delay(10);
-  
+  // delay(10);
+  digitalWrite(3, HIGH); //LED at pin 3 as a status indicator, high when busy.
+   
   // t.update(); //check for active timer threads //Timer lib for non blocking delay
   // checkTrigger0();
   // checkTrigger1();
-  
-//  timer_ms=millis();
-//  timer_us=micros();
-  digitalWrite(3, HIGH); //LED at pin 3 as freeze-indicator  
+  //  timer_ms=millis();
+  //  timer_us=micros();
+   
+  if (millis() > timer_ms + KEEPALIVE_RATE) {
+      sendStatus(1); //send a heartbeat packet to the server and signal our health
+      timer_ms = millis();
+      timer_us = micros();
+    }
   
   #ifdef ETHERCARD
     ether.packetLoop(ether.packetReceive()); //pump the network frequently to handle all incoming packets.
@@ -280,14 +273,7 @@ void loop () {
   #ifdef W5100
   eth_reply_w5100(); // read out the ethernet buffer frequently.
   #endif
-  
-  /* if (millis() > timer_ms + KEEPALIVE_RATE) {
-      timer_ms = millis();
-      #ifdef W5100
-      sendStatus(1); //send a packet for testing purposes
-      #endif
-    }
-  */
-  digitalWrite(3, LOW); //LED at pin 3 as freeze-indicator
+ 
+  digitalWrite(3, LOW); //LED at pin 3 as status-indicator
 }
 
