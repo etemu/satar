@@ -4,10 +4,14 @@ boolean lastConnected = false;
 
 void sendPacket(char* payload){
 
-  Serial.println("ETH: init...");
-  if (client.connect(website, 80)) { //W5100
-    Serial.println("ETH: W5100 connected.");
-    client.print("GET /lab1/satar.php?"); 
+  Serial.print("ETH: Connect SatarServer... ");
+  
+  // if (client.connect(website, 80)) {
+    if (client.connect(website_ip, 80)) {
+    Serial.println("Done!");
+    client.print("GET ");
+    client.print(website_url);
+    client.print("?");
     client.print(payload);
     client.println(" HTTP/1.0");
     client.print("Host: ");
@@ -15,7 +19,7 @@ void sendPacket(char* payload){
     client.println();
   } 
   else {
-    Serial.println("ETH: connect failed.");
+    Serial.println("\nETH:!Connect to SatarServer failed.");
   }
 }
 
@@ -34,11 +38,11 @@ static void eth_reply_w5100()
   }
 
  if (!client.connected() && lastConnected) {
-    Serial.print("ETH: Reply in");
-    Serial.println(millis()-timer_ms);
-    Serial.println("ETH: closing...");
+    Serial.print("ETH: Reply in ");
+    Serial.print(millis()-timer_ms);
+    Serial.print(" us, stopping client... ");
     client.stop();
-    Serial.println("ETH: closed.");
+    Serial.println("Done!");
   }
  lastConnected = client.connected();
 }

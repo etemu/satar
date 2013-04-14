@@ -29,11 +29,11 @@ if (cardLog){
   payloadString.toCharArray(payload, 42); // convert String into char* and fill the buffer
 
   #ifdef DEBUG
-    Serial.print("DEB: Timer  : ");
-    Serial.println(timer_ms);
+//    Serial.print("DEB: Timer  : ");
+//    Serial.println(timer_ms);
     Serial.print("DEB: Payload: ");
-    Serial.println(payload);
-    Serial.print("DEB: Forged in: ");
+    Serial.print(payload);
+    Serial.print(" forged in ");
     Serial.print(micros()-timer_micros1);
     Serial.println(" us.");
   #endif
@@ -43,7 +43,7 @@ sendPacket(payload); //send out the forged packet to the ethernet chip via SPI
   // client.println();  ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply); // ENC
 
   if (DEBUG) {
-    Serial.print("DEB: Executed in ");
+    Serial.print("DEB: forge&sendPacket done in ");
     Serial.print(micros()-timer_micros1);
     Serial.println(" us.");
   }

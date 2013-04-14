@@ -35,38 +35,39 @@
 // 2.17 201304070400 Shure: outsource chip dependent code
 // 2.18 201304071818 Shure: implement code for ENC28J60
 // 2.19 201304081924 Shure: keepalive packet forging
+// 2.20 201304131925 Shure: read out MAC+nodeID from EEPROM
 //
-////////////////////////////////// BEGIN Config
-
-#define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
-#define nodeID 11 // Unique Node Identifier (1...254) - also the last byte of the IPv4 adress
-#define REQUEST_RATE 30000L // request rate of webpage query in ms, for debugging
-#define KEEPALIVE_RATE 32000L // request rate of sendKeepalive in ms
-
-#define W5100
-//#define USE_SD // only together with W5100
-//#define ETHERCARD
-
-// #include <EtherCard.h> // 
-#include <SPI.h>
-//#include <Timer.h> //Timer lib for non blocking delay
-
-#ifdef USE_SD
-#include <SD.h> // library to interface the Micro-SD card
-#endif
-
-#ifdef W5100
-#include <Ethernet.h> // library to interface W5100 with integrated TCP stack
-#endif
-
-#ifdef ETHERCARD
-#include <EtherCard.h> // library to interface ENC28J60 with integrated TCP stack
-#endif
 // ** MOSI - pin 11
 // ** MISO - pin 12
 // ** CLK - pin 13
 // ** CS - pin 4 for SD card interface
-// ** CS - pin 10 for ethernet interface
+// ** CS - pin 10 for W5100 ethernet interface
+// ** CS - pin 8 for ENC28J60 ethernet interface
+//
+////////////////////////////////// BEGIN Config
+
+byte nodeID = 11; // Unique Node Identifier (2...254) - also the last byte of the IPv4 adress, not used if USE_EEPROM is set
+#define USE_EEPROM // read nodeID and network settings from EEPROM at bootup, overwrites nodeID and MAC.
+#define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
+#define REQUEST_RATE 30000L // request rate of webpage query in ms, for debugging
+#define KEEPALIVE_RATE 32000L // request rate of sendKeepalive in ms
+
+#define W5100 // use the Wiznet W5100 ethernet controller
+//#define USE_SD // only together with W5100
+//#define ETHERCARD // use the Microchip ENC28J60 controller
+
+#include <EEPROM.h>
+#include <SPI.h>
+//#include <Timer.h> //Timer lib for non blocking delay
+#ifdef USE_SD
+#include <SD.h> // library to interface the Micro-SD card
+#endif
+#ifdef W5100
+#include <Ethernet.h> // library to interface W5100 with integrated TCP stack
+#endif
+#ifdef ETHERCARD
+#include <EtherCard.h> // library to interface ENC28J60 with integrated TCP stack
+#endif
 
 #ifdef W5100
 const short CS_SD = 4; // ** CS - pin 4 for SD card
@@ -76,14 +77,19 @@ const short CS_ETH = 10; // ** CS - pin 10 for ethernet
 // #define EthernetType 1 // type of ethernet hardware: 0=Microchip ENC28J60, 1=Wiznet W5100
 #define DHCP 0 //disable or enable DHCP client NOTE: DHCP not yet implemented
 
-static byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0x08 }; // ethernet interface mac address
+static byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0x14 }; // ethernet interface mac address, not used if USE_EEPROM is set
 static char website[] = "etemu.com"; // remote server, TLD/vHost
+IPAddress website_ip(192,168,8,113); // the IP from the website - optional, used for debugging purposes
+
+static char website_url[] = "/satar/SatarServer/satar.php"; // URL pointing to SatarServer's satar.php, leading slash, no trailing slash.
+// vetu_anna: http://192.168.8.113/satar/SatarServer/satar.php
+// etemu.com lab1: http://etemu.com/lab1/satar.php
 
 #ifdef W5100 //if using W5100
 
 // IPAddress ip(192,168,8,nodeID); // static IP if DHCP is disabled
-IPAddress ip(192,168,23,250); // static IP if DHCP is disabled
-IPAddress gw(192,168,23, 1); // static gateway IP if DHCP is disabled
+IPAddress ip(192,168,8,250); // static IP if DHCP is disabled
+IPAddress gw(192,168,8, 1); // static gateway IP if DHCP is disabled
 IPAddress subnet(255, 255, 255, 0); // static subnet if DHCP is disabled
 #endif
 
@@ -137,13 +143,13 @@ void printRAM(){
   Serial.println(" bytes free.");
 }
 
-void sendStatus(int nodeStatus=2){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
+void sendStatus(int nodeStatus=1){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
   #ifdef DEBUG
-  Serial.println("DEB: Emit heartbeat <3.");
+  Serial.println("DEB: Emit heartbeat <3:");
   #endif
   unsigned int armedID = 0;
-  armedID = trigger_start_armed; // B0000000X
   armedID = trigger_finish_armed << 1;  //B000000X0
+  armedID = armedID + trigger_start_armed; // B0000000X
   forgePacket(millis(),nodeStatus,armedID);
 }
 
@@ -159,24 +165,32 @@ void setup () {
     ; // wait for serial port to connect. Needed for Arduino Leonardo < only
   }
 
-  Serial.println("\n=====================");
+  Serial.println("\n_____________________");
   Serial.println("== [SATAR Controller]");
   Serial.println("== CC-BY-SA-NC 3.0");
-  Serial.print("== nodeID: ");
+  Serial.print("STR: Node ID: ");
+  #ifdef USE_EEPROM
+  nodeID=EEPROM.read(0);
+  Serial.print("EEPROM, ");
+  #endif
   Serial.println(nodeID);
   #ifdef W5100
-  Serial.println("== ETH: (SPI) Wiznet W5100 (100-baseT).");
+  Serial.println("ETH: (SPI) Wiznet W5100 (100-baseT).");
+  #ifdef USE_EEPROM
+  static byte mac[] = { EEPROM.read(1), EEPROM.read(2), EEPROM.read(3), EEPROM.read(4), EEPROM.read(5), EEPROM.read(6) }; // ethernet interface mac address
+  IPAddress ip(192,168,8,nodeID); // static IP
+  #endif
   Ethernet.begin(mac, ip, gw, gw, subnet);
-  Serial.print("== SATAR node IP: ");
+  Serial.print("ETH: Node IP: ");
   Serial.println(Ethernet.localIP());
   #endif
   
   #ifdef ETHERCARD
-  Serial.println("== ETH: (SPI) Microchip ENC28J60 (10-baseT).");
+  Serial.println("ETH: (SPI) Microchip ENC28J60 (10-baseT).");
   if (ether.begin(sizeof Ethernet::buffer, mac) == 0){ 
-  Serial.println( "== ETH: Failed to access ENC28J60 controller.");}
+  Serial.println( "ETH:!Failed to access ENC28J60 controller.");}
   ether.staticSetup(ip, gw);
-  Serial.print("== SATAR node IP: ");
+  Serial.print("ETH: Satar Node IP: ");
   ether.printIp("ETH: IP: ", ether.myip);
   ether.printIp("ETH: GW: ", ether.gwip);
   ether.printIp("ETH: DNS: ", ether.dnsip);
@@ -239,7 +253,7 @@ if (DEBUG) {
   */
   
       #ifdef W5100
-      sendStatus();
+      sendStatus(0);
       //forgePacket(timer_ms,1,nodeID); //send a packet for testing purposes
       #endif
  }

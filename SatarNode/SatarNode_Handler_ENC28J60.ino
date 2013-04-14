@@ -12,7 +12,7 @@ static void eth_reply_ethercard (byte status, word off, word len) { // called wh
 void sendPacket(char* payload){
 
   Serial.println("ETH: initiating connection."); //ENC28J60
-    ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply_ethercard);
+    ether.browseUrl(PSTR(website_url), payload, website, eth_reply_ethercard);
     Serial.println("ETH: ENC28J60 connected to server.");
 
 //    Serial.println("ETH: connection failed.");
