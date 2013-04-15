@@ -13,6 +13,7 @@ void sendPacket(char* payload){
 
   Serial.println("ETH: initiating connection."); //ENC28J60
     ether.browseUrl(PSTR(website_url), payload, website, eth_reply_ethercard);
+	timer_us = micros();
     Serial.println("ETH: ENC28J60 connected to server.");
 
 //    Serial.println("ETH: connection failed.");

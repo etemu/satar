@@ -110,21 +110,23 @@ EthernetClient client;
 //EthernetServer server;
 #endif
 
-volatile boolean startTriggered=0; // flag which will be set to 1 in an ISR if the interrupt triggers
-volatile boolean finishTriggered=0; // same, but for second portpin (e.g. finish line)
-boolean trigger_start_armed=1; // 0 = not armed, 1 = trigger is armed and listens at input
-boolean trigger_finish_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
-unsigned int debounceCountsStart=0;
-unsigned int debounceCountsFinish=0;
-unsigned long startTriggeredMillis=0; 
-unsigned long finishTriggeredMillis=0; 
+volatile boolean oneTriggered=0; // flag which will be set to 1 in an ISR if the interrupt triggers
+volatile boolean twoTriggered=0; // same, but for second portpin (e.g. finish line)
+boolean trigger_one_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
+boolean trigger_two_armed=0; // 0 = not armed, 1 = trigger is armed and listens at input
+unsigned int debounceCountsOne=0;
+unsigned int debounceCountsTwo=0;
+unsigned long oneTriggeredMillis=0; 
+unsigned long twoTriggeredMillis=0; 
+volatile unsigned long oneTriggeredMicros=0;
+volatile unsigned long twoTriggeredMicros=0;
 byte typeEvent=2;
 unsigned long ID=nodeID;
 
-const unsigned int triggerIntervalStart=700; //minimum time between two occuring start trigger events in ms
-const unsigned int triggerIntervalFinish=700; 
-const int startPin = 2;	// the number of the input pin, ISR only at portpins 2 and 4 (AtMega328)
-const int finishPin = 4; 
+const unsigned int triggerIntervalOne=1000; //minimum time between two occuring start trigger events in ms
+const unsigned int triggerIntervalTwo=1000; 
+const int onePin = 2;	// the number of the input pin, ISR only at portpins 2 and 3 (AtMega328)
+const int twoPin = 3; 
 
 unsigned long timer_ms = 0;
 unsigned long timer_us = 0;
@@ -145,8 +147,8 @@ void sendStatus(int nodeStatus=1){ // keepalive packet to the server, doubles as
   Serial.println("DEB: Emit heartbeat <3:");
   #endif
   unsigned int armedID = 0;
-  armedID = trigger_finish_armed << 1;  //B000000X0
-  armedID = armedID + trigger_start_armed; // B0000000X
+  armedID = trigger_two_armed << 1;  //B000000X0
+  armedID = armedID + trigger_one_armed; // B0000000X
   forgePacket(millis(),nodeStatus,armedID);
 }
 
@@ -156,12 +158,11 @@ void setup () {
   pinMode(CS_SD, OUTPUT); // CS SD card
   pinMode(CS_ETH, OUTPUT); // CS hardware SPI, e.g. ethernet
   #endif
-  pinMode(startPin, INPUT); //ISR only at portpins 2 and 4
-//  pinMode(finishPin, INPUT); //ISR only at portpins 2 and 4 TODO: fix the wiring and reroute CS_SD!
+  pinMode(onePin, INPUT); //ISR only at portpins 2 and 3
+  pinMode(twoPin, INPUT); //ISR only at portpins 2 and 3 TODO: fix the wiring
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Arduino Leonardo < only
   }
-
   Serial.println("\n_____________________");
   Serial.println("== [SATAR Controller]");
   Serial.println("== CC-BY-SA-NC 3.0");
@@ -198,10 +199,11 @@ void setup () {
   ether.printIp("ETH: Server IP: ", ether.hisip);
   #endif
   
-  // digitalWrite(startPin, HIGH); //20kOhm internal pull-up enable 
-  // digitalWrite(finishPin, HIGH); //20kOhm internal pull-up enable
-  // attachInterrupt(0, trigger_start, RISING); //0 = portpin 2
-  // attachInterrupt(1, trigger_finish, RISING); //1 = portpin 4
+  // digitalWrite(onePin, HIGH); //20kOhm internal pull-up enable 
+  // digitalWrite(twoPin, HIGH); //20kOhm internal pull-up enable
+  // Serial.println("ISR: 1 UP.");
+  // attachInterrupt(0, trigger_one, FALLING); //0 = portpin 2
+  // attachInterrupt(1, trigger_two, FALLING); //1 = portpin 4
   
 //============= BEGIN SD CARD INIT
 #ifdef USE_SD
@@ -230,7 +232,7 @@ digitalWrite(CS_ETH, LOW); // CS ethernet
 //============= END SD CARD INIT
 
 printRAM();
-pinMode(3, OUTPUT); // LED at pin 3, on when busy with sending and receiving in subfunction.
+pinMode(5, OUTPUT); // LED at pin 5, on when busy with sending and receiving in subfunction.
 
 #ifdef DEBUG
 /*  int tkeepalive = t.every(KEEPALIVE_RATE, sendHeartbeat); // create a thread to send a heartbeat to the server
@@ -251,29 +253,28 @@ pinMode(3, OUTPUT); // LED at pin 3, on when busy with sending and receiving in 
 
 void loop () {
 
-  // delay(10);
-  digitalWrite(3, HIGH); //LED at pin 3 as a status indicator, high when busy.
+  delay(1); // provide some down time for the status LED duty cycle
+  digitalWrite(5, HIGH); //LED at pin 3 as a status indicator, high when busy.
    
   // t.update(); //check for active timer threads //Timer lib for non blocking delay
-  // checkTrigger0();
-  // checkTrigger1();
+  checkTriggerOne();
+  // checkTriggerTwo();
   //  timer_ms=millis();
   //  timer_us=micros();
    
   if (millis() > timer_ms + KEEPALIVE_RATE) {
       sendStatus(1); //send a heartbeat packet to the server and signal our health
       timer_ms = millis();
-      timer_us = micros();
     }
   
   #ifdef ETHERCARD
-    ether.packetLoop(ether.packetReceive()); //pump the network frequently to handle all incoming packets.
+    ether.packetLoop(ether.packetReceive()); // read out the ethernet buffer frequently.
   #endif
   
   #ifdef W5100
   eth_reply_w5100(); // read out the ethernet buffer frequently.
   #endif
  
-  digitalWrite(3, LOW); //LED at pin 3 as status-indicator
+  digitalWrite(5, LOW); //LED at pin 3 as status-indicator
 }
 

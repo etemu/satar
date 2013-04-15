@@ -1,50 +1,48 @@
-void trigger_start(){ 
-  startTriggered=1;       //set flag to 1 when interrupt is triggered by a RISING edge
+void trigger_one(){ 
+  detachInterrupt(0);                    // disable the interrupt, so it won't bother us while we process the event
+  oneTriggered=1;       //set flag to 1 when interrupt is triggered by a FALLING edge
+  oneTriggeredMicros=micros();           // this is our time which will be used as the event time
 } 
-void trigger_finish(){ 
-  finishTriggered=1;      //set flag to 1 when interrupt is triggered by a RISING edge
+void trigger_two(){ 
+  twoTriggered=1;      //set flag to 1 when interrupt is triggered by a FALLING edge
 } 
 
-void checkTrigger0(){
+void checkTriggerOne(){
   
-  if (trigger_start_armed){
-	startTriggered=digitalRead(startPin);
-	}
-
-  if (startTriggered){
-  	// detachInterrupt(0);                      // disable the interrupt, so it won't bother us
-	Serial.println("||||||||||||||||");	
-	Serial.println("ISR deactivated.");
-	
-    startTriggeredMillis=millis();           // this is our time which will be used as the event time
-    forgePacket(startTriggeredMillis,10,0);  // send the acquired data: ms, eventID, riderID
-    startTriggered=0;                        // reset the trigger flag
-    trigger_start_armed=0;                   // set the helper flag, so we now that the trigger is not armed for now
+  if (oneTriggered){
+    oneTriggeredMicros=micros()-oneTriggeredMicros;           // this is our time which will be used as the event time
+    oneTriggeredMillis=millis();           // this is our time which will be used as the event time
+    Serial.println("ISR: 1 DOWN.");
+    forgePacket(oneTriggeredMicros,101,0);  // send the acquired data: ms, eventID, riderID
+    oneTriggered=0;                        // reset the trigger flag
+    trigger_one_armed=0;                   // set the helper flag, so we now that the trigger is not armed for now
   }
-  if (!trigger_start_armed){                 //if the trigger is not armed then check if we should arm it again:
-    if (millis() - startTriggeredMillis >= triggerIntervalStart) //minimum delay between two events which will actually get logged: triggerInterval*
+  if (!trigger_one_armed){                 //if the trigger is not armed then check if we should arm it again:
+    if (millis() - oneTriggeredMillis >= triggerIntervalOne) //minimum delay between two events which will actually get logged: triggerInterval*
     {
-     // attachInterrupt(0, trigger_start, RISING); //let's arm the trigger again
-      trigger_start_armed=1;                 //set the helper flag, so we now that the trigger is armed
-	Serial.println("||||||||||||||||");	
-	Serial.println(" ISR activated.");
-    }; 
+     attachInterrupt(0, trigger_one, LOW); //let's arm the trigger again
+      trigger_one_armed=1;                 //set the helper flag, so we now that the trigger is armed
+	 Serial.println("ISR: 1 UP.");
+	}; 
   }
 }
 
-void checkTrigger1(){
-  if (finishTriggered){
-   // detachInterrupt(1);                      // disable the interrupt, so it won't bother us
-    finishTriggeredMillis=millis();           // this is our time which will be used as the event time
-    forgePacket(finishTriggeredMillis,11,0);  // send the acquired data: ms, eventID, riderID
-    finishTriggered=0;                        // reset the trigger flag
-    trigger_finish_armed=0;                   // set the helper flag, so we now that the trigger is not armed for now
+void checkTriggerTwo(){
+  
+  if (twoTriggered){
+    twoTriggeredMicros=micros()-twoTriggeredMicros;           // this is our time which will be used as the event time
+    twoTriggeredMillis=millis();           // this is our time which will be used as the event time
+    Serial.println("ISR: 2 DOWN.");
+    forgePacket(twoTriggeredMicros,101,0);  // send the acquired data: ms, eventID, riderID
+    twoTriggered=0;                        // reset the trigger flag
+    trigger_two_armed=0;                   // set the helper flag, so we now that the trigger is not armed for now
   }
-  if (!trigger_finish_armed){                 //if the trigger is not armed then check if we should arm it again:
-    if (millis() - finishTriggeredMillis >= triggerIntervalFinish) //minimum delay between two events which will actually get logged: triggerInterval*
+  if (!trigger_two_armed){                 //if the trigger is not armed then check if we should arm it again:
+    if (millis() - twoTriggeredMillis >= triggerIntervalTwo) //minimum delay between two events which will actually get logged: triggerInterval*
     {
-   //   attachInterrupt(1, trigger_finish, RISING); //let's arm the trigger again
-      trigger_finish_armed=1;                 //set the helper flag, so we now that the trigger is armed
-    }; 
+     attachInterrupt(0, trigger_two, LOW); //let's arm the trigger again
+      trigger_two_armed=1;                 //set the helper flag, so we now that the trigger is armed
+	 Serial.println("ISR: 2 UP.");
+	}; 
   }
 }

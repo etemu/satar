@@ -17,6 +17,7 @@ void sendPacket(char* payload){
     client.print("Host: ");
     client.println(website);    
     client.println();
+	timer_us = micros();
   } 
   else {
     Serial.println("\nETH:!Connect to SatarServer failed.");
@@ -45,7 +46,7 @@ static void eth_reply_w5100()
     Serial.print(millis()-timer_ms2);
     Serial.print(" ms, stopping client.. ");
     client.stop();
-    Serial.println("ACK");
+    Serial.println("ACK\n");
   }
  lastConnected = client.connected();
  }

@@ -3,6 +3,12 @@ void logPacketToCard(String dataString){
 digitalWrite(CS_ETH, HIGH); // CS ethernet
 digitalWrite(CS_SD, LOW); // CS SD
 
+// String logFile="Node";
+// logFile+=nodeID;
+// logFile+=".csv";
+// char logFileCSV[13];
+// logFile.toCharArray(logFileCSV, 13);
+
 File dataFile = SD.open("satar.csv", FILE_WRITE);
 
   if (dataFile) {
