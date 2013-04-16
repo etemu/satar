@@ -13,6 +13,7 @@
 
 unsigned int localPort = 8888;      // local port to listen on
 unsigned long micros1 = 0;
+unsigned long micros2 = 0;
 unsigned long timer_ms = -8000;
 unsigned long timeStamps[2];
 // buffers for receiving and sending data
@@ -20,7 +21,7 @@ char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; //buffer to hold incoming packet, sta
 char  ReplyBuffer[] = "T";       // a string to send back
 //T4294967296 
 //T1234567890
-
+byte nodeID=11;
 // An EthernetUDP instance to let us send and receive packets over UDP
 EthernetUDP Udp;
 
@@ -28,7 +29,7 @@ void setup() {
   // start the Ethernet and UDP:
   Serial.begin(115200);
   Serial.print("STR: Node ID: ");
-  byte nodeID=EEPROM.read(0);
+  nodeID=EEPROM.read(0);
   Serial.println(nodeID);
   static byte mac[] = { 
     EEPROM.read(1), EEPROM.read(2), EEPROM.read(3), EEPROM.read(4), EEPROM.read(5), EEPROM.read(6)       }; // ethernet interface mac address
@@ -162,34 +163,27 @@ void recvUdp(){
 
 void sendT()
 { 
-  micros1=micros();
   Serial.print("UDP: ->sendT: ");
-  String micros1String;
-  micros1String +="T";
-  micros1String += micros1;
-  Serial.println(micros1String);
-  char micros1Char[5];
-  micros1String.toCharArray(micros1Char,11);
-  ltob(micros1,
-
   IPAddress rip(192,168,8,90);
+  byte _m1[4];
+  micros1=micros();
+  Serial.println(micros1);
+  ltob(micros1,_m1);
   Udp.beginPacket(rip,6000);
   //Udp.remoteIP(), Udp.remotePort());
   //    Udp.write(ReplyBuffer);
-
- byte b1=65;
- byte b2=66;
- byte b3=67;
-
-  Udp.write(b1);
-  Udp.write(b2);
-  Udp.write(b3);
-    
-//   Udp.write(micros1Char);
+  Udp.write(nodeID);
+  Udp.write(_m1[0]);
+  Udp.write(_m1[1]);
+  Udp.write(_m1[2]);
+  Udp.write(_m1[3]);  
+  //Udp.write(micros1Char);
   //4294967296
   //1234567890
   Udp.endPacket();
-  micros1=micros();
+  micros2=micros(); 
+  Serial.println(micros2-micros1);
+  //1336 us from last micros1 update
 }
 
 void sendR()
