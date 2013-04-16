@@ -3,7 +3,7 @@
 #include <Ethernet.h>
 #include <EthernetUdp.h>         // UDP library from bjoern@cs.stanford.edu
 
-#define TIME_RATE 10000L //
+#define TIME_RATE 5000L //
 #define PROCTIME 1L
 
 // Enter a MAC address and IP address for your controller below.
@@ -14,7 +14,7 @@
 unsigned int localPort = 8888;      // local port to listen on
 unsigned long micros1 = 0;
 unsigned long micros2 = 0;
-unsigned long timer_ms = -8000;
+unsigned long timer_ms = -TIME_RATE;
 unsigned long timeStamps[2];
 // buffers for receiving and sending data
 char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; //buffer to hold incoming packet, standard: 24
@@ -114,20 +114,15 @@ void recvUdp(){
     Serial.print(":");
     Serial.println(Udp.remotePort());
     Serial.print("UDP: <-recvT: ");
-    Serial.println(packetBuffer);
-
-    if (packetBuffer[0]=='R'){
+    byte recvB[6];
+    ctob(packetBuffer,recvB,6);
+    unsigned long remoteT=btol(recvB,1);
+    Serial.println(remoteT);
+    if (packetBuffer[0]==42){
       unsigned long hopTime = (replyTime-PROCTIME)/2L;
       timeStamps[0]=micros1;
-      unsigned int len=strlen(packetBuffer);
-      Serial.println(len);
-      /*
-      memmove(packetBuffer,packetBuffer+1,len);
-       timeStamps[1]=atoi(packetBuffer);
-       */
-      //timeStamps[1]=AToLong(packetBuffer,len);
-      timeStamps[1]=
-        Serial.print("UDP: <-TS0: ");
+      timeStamps[1]=remoteT;
+      Serial.print("UDP: <-TS0: ");
       Serial.println(timeStamps[0]);
       Serial.print("UDP: <-TS1: ");
       Serial.println(timeStamps[1]);
@@ -243,12 +238,12 @@ unsigned long AToLong(char *_input, unsigned int _arrayLength){ // converts a (_
   return total; 
 }
 
-unsigned long btol (byte* _b){
+unsigned long btol (byte* _b){ //pointer is the startpointer in the array
   unsigned long _l=0;
-  _l=long (_b[3]);
-  _l+=long (_b[2]*256L);
-  _l+=long (_b[1]*65536L);
-  _l+=long (_b[0]*16777216L);
+  _l=long (_b[_pointer+3]);
+  _l+=long (_b[_pointer+2]*256L);
+  _l+=long (_b[_pointer+1]*65536L);
+  _l+=long (_b[_pointer+]*16777216L);
   return _l;  
 }
 
@@ -283,5 +278,9 @@ void ltoc(unsigned long _longInt, unsigned char _b[]){   // convert from an unsi
   _b[3] = ((_longInt & 0XFF));
 }
 
+void ctob(char* _chars, byte* _bytes, unsigned int _count){
+    for(unsigned int i = 0; i < _count; i++)
+    	_bytes[i] = (byte)_chars[i];
+}
 
 
