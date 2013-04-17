@@ -3,14 +3,19 @@
 #include <Ethernet.h>
 #include <EthernetUdp.h>         // UDP library from bjoern@cs.stanford.edu
 
-// Minimum time it takes to send an 'R'-type message response: 1391 us.
-// Minimum time it takes to send an 'T'-type message: 980 us.
+// PROC_DELAY: Minimum reaction time to note an 'R' or 'T'-type message: 309 us.
+// Minimum time it takes to send an 'R'-type message response: 1136 us + PROC_DELAY.
+// Minimum time it takes to send an 'T'-type message (after micros1 is read): 980 us.
 
-#define TIME_RATE 3000L //
+#define SYNC_RATE 3000L // request rate
 #define PROCTIME 1912L // 201304162000 aShure, 16Mhz Atmega 328
 #define T_DELAY 980L // minimum processing time until T packet is sent out
-#define R_DELAY 1391L // minimum processing time until R packet can be replied
-
+#define PROC_DELAY 309L; // minimum reaction time to any packet type
+#define R_DELAY 1136L // minimum processing time until R packet can be replied
+                      
+#define R_ADVANCE 414L // Anticipated propagation time, shifts the 'R' time into the middle of the round trip.
+                       //  PROC_DELAY + R_DELAY ) DIV 2 - PROC_DELAY
+                       
 // Enter a MAC address and IP address for your controller below.
 // The IP address will be dependent on your local network: (Not used here - config read out from EEPROM)
 //byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFA, 0xED };
@@ -20,7 +25,7 @@ unsigned int localPort = 8888;      // local port to listen on
 unsigned long micros1 = 0;
 unsigned long micros2 = 0;
 unsigned long micros3 = 0;
-unsigned long timer_ms = -TIME_RATE;
+unsigned long timer_ms = -SYNC_RATE;
 byte nodes[8];
 unsigned long nodeStamps[2]; //holds timestamps from the nodes
 // buffers for receiving and sending data
@@ -77,7 +82,7 @@ void loop() {
   // if there's data available, read a packet
   recvUdp();
 
-  if (millis() > timer_ms + TIME_RATE) {
+  if (millis() > timer_ms + SYNC_RATE) {
     timer_ms = millis();
     sendT(90);
 //    sendT(90);
@@ -94,14 +99,11 @@ void recvUdp(){
   int packetSize = Udp.parsePacket(); // ^delta t start 
   if (packetSize)
   {
-    unsigned long replyTime=micros()-micros1; // delta t end -> 324us
-    micros1=micros();
+    unsigned long replyTime=micros()-micros1; // delta t end -> 305+4us
+    micros1=micros(); //-PROC_DELAY
     Udp.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE); // 224us - read the packet into packetBufffer
-//    unsigned long _micros2=micros()-micros1;
-//    Serial.print("UDP: <-recv packet decode in ");
-//    Serial.println(_micros2);
     if (packetBuffer[1]=='T'){
-      sendR();
+      sendR(); // from micros1 until here 208us
     }
     Serial.print("UDP: <-recv in ");
     Serial.print(replyTime);
@@ -157,10 +159,10 @@ void sendR()
   Udp.write(_m1[1]);
   Udp.write(_m1[2]);
   Udp.write(_m1[3]);
-  Udp.endPacket(); // 52us (from micros1: 1392us)
-  //1364 us from last micros1 update
+  Udp.endPacket(); // 52us
+  //1136 us from last micros1 update
   Serial.print("UDP:<->sentResponse to nodeID ");
-  Serial.println(packetBuffer[0]);
+  Serial.println(packetBuffer[0],DEC);
 }
 
 
