@@ -100,11 +100,12 @@ void recvUdp(){
   if (packetSize)
   {
     unsigned long replyTime=micros()-micros1; // delta t end -> 305+4us
-    micros1=micros(); //-PROC_DELAY
+    micros1=micros()+R_ADVANCE;
     Udp.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE); // 224us - read the packet into packetBufffer
     if (packetBuffer[1]=='T'){
       sendR(); // from micros1 until here 208us
     }
+    micros1=micros1-R_ADVANCE-PROC_DELAY;
     Serial.print("UDP: <-recv in ");
     Serial.print(replyTime);
     Serial.print(" us, len ");
@@ -119,12 +120,12 @@ void recvUdp(){
         Serial.print(".");
       }
     }
-    Serial.print(":");
-    Serial.println(Udp.remotePort());
-    byte recvB[6];
-    ctob(packetBuffer,recvB,6);
-    unsigned long remoteT=btol(recvB,2);
+      Serial.print(":");
+      Serial.println(Udp.remotePort());
     if (packetBuffer[1]=='R'){
+      byte recvB[6];
+      ctob(packetBuffer,recvB,6);
+      unsigned long remoteT=btol(recvB,2);
       long hopTime = (replyTime)/2L;
       nodeStamps[0]=micros1;
       nodeStamps[1]=remoteT-hopTime;
