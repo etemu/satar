@@ -3,8 +3,13 @@
 #include <Ethernet.h>
 #include <EthernetUdp.h>         // UDP library from bjoern@cs.stanford.edu
 
-#define TIME_RATE 5000L //
-#define PROCTIME 1L
+// Minimum time it takes to send an 'R'-type message response: 1391 us.
+// Minimum time it takes to send an 'T'-type message: 980 us.
+
+#define TIME_RATE 3000L //
+#define PROCTIME 1912L // 201304162000 aShure, 16Mhz Atmega 328
+#define T_DELAY 980L // minimum processing time until T packet is sent out
+#define R_DELAY 1391L // minimum processing time until R packet can be replied
 
 // Enter a MAC address and IP address for your controller below.
 // The IP address will be dependent on your local network: (Not used here - config read out from EEPROM)
@@ -14,16 +19,44 @@
 unsigned int localPort = 8888;      // local port to listen on
 unsigned long micros1 = 0;
 unsigned long micros2 = 0;
+unsigned long micros3 = 0;
 unsigned long timer_ms = -TIME_RATE;
-unsigned long timeStamps[2];
+byte nodes[8];
+unsigned long nodeStamps[2]; //holds timestamps from the nodes
 // buffers for receiving and sending data
 char packetBuffer[UDP_TX_PACKET_MAX_SIZE]; //buffer to hold incoming packet, standard: 24
-char  ReplyBuffer[] = "T";       // a string to send back
 //T4294967296 
 //T1234567890
 byte nodeID=11;
 // An EthernetUDP instance to let us send and receive packets over UDP
 EthernetUDP Udp;
+
+unsigned long btol (byte* _b, int _pointer = 0){ //pointer is the startpointer in the array
+  unsigned long _l=0;
+  _l=long (_b[_pointer+3]);
+  _l+=long (_b[_pointer+2]*256L);
+  _l+=long (_b[_pointer+1]*65536L);
+  _l+=long (_b[_pointer]*16777216L);
+  return _l;  
+}
+
+void sendT(byte _nodeID = 0)
+{ 
+  Serial.println("UDP: ->sendT. ");
+  IPAddress rip(192,168,8,_nodeID);
+  byte _m1[4];
+  micros1=micros()+T_DELAY;
+//  Serial.println(micros1); // ^delta t start
+  ltob(micros1,_m1);
+  Udp.beginPacket(rip,8888);
+  Udp.write(nodeID);
+  Udp.write('T');  
+  Udp.write(_m1[0]);
+  Udp.write(_m1[1]);
+  Udp.write(_m1[2]);
+  Udp.write(_m1[3]);  
+  Udp.endPacket(); // 980us since last micros1 set. 1364us delta t end
+}
 
 void setup() {
   // start the Ethernet and UDP:
@@ -36,43 +69,7 @@ void setup() {
   IPAddress ip(192,168,8,nodeID); // static IP
   Ethernet.begin(mac,ip);
   Udp.begin(localPort);
-
-//  unsigned long longInt=4294967294;
-  unsigned long longInt=240;
-  byte byteArray[4];
-  //  ltob(longInt,byteArray);
-  unsigned char charArray[4];
-  ltoc(longInt,charArray);
-  ltob(longInt,byteArray);
-  Serial.println("long");
-  Serial.println(longInt);
-  Serial.println(longInt,BIN);
-  Serial.print(charArray[0],BIN);
-  Serial.print("-");
-  Serial.print(charArray[1],BIN);
-  Serial.print("-");
-  Serial.print(charArray[2],BIN);
-  Serial.print("-");
-  Serial.println(charArray[3],BIN);
-  Serial.println("=====================");
-  char c[4];
-  c[0]=charArray[0]-128;
-  c[1]=charArray[1]-128;
-  c[2]=charArray[2]-128;
-  c[3]=charArray[3]-128;
-  unsigned long temp=c[3];
-  int temp2=c[3];
-  Serial.println(c[3],BIN);
-   Serial.println(temp);
-    Serial.println(temp,BIN);
-          Serial.println(temp2);
-      Serial.println(temp2,BIN);
-  unsigned long longInt2=ctol(charArray);
-  unsigned long longInt3=ctol2(c);
-  Serial.println("convert back to long:");    
-  Serial.println(longInt);
-  Serial.println(longInt2);
-  Serial.println(longInt3);
+  nodes[0]=nodeID;
   Serial.println("init successful");
 }
 
@@ -82,24 +79,33 @@ void loop() {
 
   if (millis() > timer_ms + TIME_RATE) {
     timer_ms = millis();
-    sendT(); 
+    sendT(90);
+//    sendT(90);
+//    sendT(91);    
+//    sendT(92);
+//    sendT(93);
+//    sendT(94);
+//    sendT(95);    
   }
 
 }
 
 void recvUdp(){
-  int packetSize = Udp.parsePacket();
+  int packetSize = Udp.parsePacket(); // ^delta t start 
   if (packetSize)
   {
-    unsigned long replyTime=micros()-micros1;
+    unsigned long replyTime=micros()-micros1; // delta t end -> 324us
     micros1=micros();
-    Udp.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE); // read the packet into packetBufffer
-    if (packetBuffer[0]=='T'){
+    Udp.read(packetBuffer,UDP_TX_PACKET_MAX_SIZE); // 224us - read the packet into packetBufffer
+//    unsigned long _micros2=micros()-micros1;
+//    Serial.print("UDP: <-recv packet decode in ");
+//    Serial.println(_micros2);
+    if (packetBuffer[1]=='T'){
       sendR();
-    }     
+    }
     Serial.print("UDP: <-recv in ");
     Serial.print(replyTime);
-    Serial.print(" len: ");
+    Serial.print(" us, len ");
     Serial.print(packetSize);
     Serial.print(" from ");
     IPAddress remote = Udp.remoteIP();
@@ -113,42 +119,22 @@ void recvUdp(){
     }
     Serial.print(":");
     Serial.println(Udp.remotePort());
-    Serial.print("UDP: <-recvT: ");
     byte recvB[6];
     ctob(packetBuffer,recvB,6);
-    unsigned long remoteT=btol(recvB,1);
-    Serial.println(remoteT);
-    if (packetBuffer[0]==42){
-      unsigned long hopTime = (replyTime-PROCTIME)/2L;
-      timeStamps[0]=micros1;
-      timeStamps[1]=remoteT;
-      Serial.print("UDP: <-TS0: ");
-      Serial.println(timeStamps[0]);
+    unsigned long remoteT=btol(recvB,2);
+    if (packetBuffer[1]=='R'){
+      long hopTime = (replyTime)/2L;
+      nodeStamps[0]=micros1;
+      nodeStamps[1]=remoteT-hopTime;
+      Serial.print("UDP:   hopTime: ");
+      Serial.println(hopTime);
+      Serial.print("UDP:   TS0: ");
+      Serial.println(nodeStamps[0]);
       Serial.print("UDP: <-TS1: ");
-      Serial.println(timeStamps[1]);
-      Serial.print("UDP: <-TSdelta: ");
-      if (timeStamps[1]>=timeStamps[0]) Serial.println(timeStamps[1]-timeStamps[0]-hopTime);
-      if (timeStamps[1]<timeStamps[0]) Serial.println(timeStamps[0]-timeStamps[1]-hopTime);
-    }
-
-    if (packetBuffer[0]=='R'){
-      unsigned long hopTime = (replyTime-PROCTIME)/2;
-      timeStamps[0]=micros1;
-      unsigned int len=strlen(packetBuffer);
-      Serial.println(len);
-      /*
-      memmove(packetBuffer,packetBuffer+1,len);
-       timeStamps[1]=atoi(packetBuffer);
-       */
-      timeStamps[1]=AToLong(packetBuffer,len);
-
-      Serial.print("UDP: <-TS0: ");
-      Serial.println(timeStamps[0]);
-      Serial.print("UDP: <-TS1: ");
-      Serial.println(timeStamps[1]);
-      Serial.print("UDP: <-TSdelta: ");
-      if (timeStamps[1]>=timeStamps[0]) Serial.println(timeStamps[1]-timeStamps[0]-hopTime);
-      if (timeStamps[1]<timeStamps[0]) Serial.println(timeStamps[0]-timeStamps[1]-hopTime);
+      Serial.println(nodeStamps[1]);
+      Serial.print("UDP:   TSdelta: ");
+      if (nodeStamps[1]>=nodeStamps[0]) Serial.println(nodeStamps[1]-nodeStamps[0]-hopTime);
+      if (nodeStamps[1]<nodeStamps[0]) Serial.println(nodeStamps[0]-nodeStamps[1]-hopTime);
     }
 
 
@@ -156,49 +142,25 @@ void recvUdp(){
   // delay(10);
 }
 
-void sendT()
-{ 
-  Serial.print("UDP: ->sendT: ");
-  IPAddress rip(192,168,8,90);
-  byte _m1[4];
-  micros1=micros();
-  Serial.println(micros1);
-  ltob(micros1,_m1);
-  Udp.beginPacket(rip,6000);
-  //Udp.remoteIP(), Udp.remotePort());
-  //    Udp.write(ReplyBuffer);
-  Udp.write(nodeID);
-  Udp.write(_m1[0]);
-  Udp.write(_m1[1]);
-  Udp.write(_m1[2]);
-  Udp.write(_m1[3]);  
-  //Udp.write(micros1Char);
-  //4294967296
-  //1234567890
-  Udp.endPacket();
-  micros2=micros(); 
-  Serial.println(micros2-micros1);
-  //1336 us from last micros1 update
-}
+
 
 void sendR()
 { 
-  Serial.print("UDP: ->sendR: ");
-  String micros1String;
-  micros1String +="R";
-  micros1String += micros1;
-  Serial.println(micros1String);
-  char micros1Char[11];
-  micros1String.toCharArray(micros1Char,11);
-  IPAddress rip(Udp.remoteIP());
-  Udp.beginPacket(rip,Udp.remotePort());
-  //Udp.remoteIP(), Udp.remotePort());
-  //    Udp.write(ReplyBuffer);
-  Udp.write(micros1Char);
-  //4294967296
-  //1234567890
-  Udp.endPacket();
-  micros1=micros();
+  byte _m1[4];
+//  Serial.println(micros1); // ^delta t start
+  ltob(micros1,_m1);
+//  micros2=micros();
+  Udp.beginPacket(Udp.remoteIP(),Udp.remotePort()); // ^726us until Udp.endpacket, 924us if dynamic IP
+  Udp.write(nodeID);
+  Udp.write('R');  
+  Udp.write(_m1[0]);
+  Udp.write(_m1[1]);
+  Udp.write(_m1[2]);
+  Udp.write(_m1[3]);
+  Udp.endPacket(); // 52us (from micros1: 1392us)
+  //1364 us from last micros1 update
+  Serial.print("UDP:<->sentResponse to nodeID ");
+  Serial.println(packetBuffer[0]);
 }
 
 
@@ -238,14 +200,7 @@ unsigned long AToLong(char *_input, unsigned int _arrayLength){ // converts a (_
   return total; 
 }
 
-unsigned long btol (byte* _b){ //pointer is the startpointer in the array
-  unsigned long _l=0;
-  _l=long (_b[_pointer+3]);
-  _l+=long (_b[_pointer+2]*256L);
-  _l+=long (_b[_pointer+1]*65536L);
-  _l+=long (_b[_pointer+]*16777216L);
-  return _l;  
-}
+
 
 unsigned long ctol ( unsigned char* _b){
   unsigned long _l=0;
@@ -264,13 +219,6 @@ unsigned long ctol2 ( char* _b){
   return _l;  
 }
 
-void ltob(unsigned long _longInt,byte _b[]){   // convert from an unsigned long int to a 4-byte array
-  _b[0] = ((_longInt >> 24) & 0xFF);
-  _b[1] = ((_longInt >> 16) & 0xFF);
-  _b[2] = ((_longInt >> 8) & 0XFF);
-  _b[3] = ((_longInt & 0XFF));
-}
-
 void ltoc(unsigned long _longInt, unsigned char _b[]){   // convert from an unsigned long int to a 4-byte array
   _b[0] = ((_longInt >> 24) & 0xFF);
   _b[1] = ((_longInt >> 16) & 0xFF);
@@ -281,6 +229,13 @@ void ltoc(unsigned long _longInt, unsigned char _b[]){   // convert from an unsi
 void ctob(char* _chars, byte* _bytes, unsigned int _count){
     for(unsigned int i = 0; i < _count; i++)
     	_bytes[i] = (byte)_chars[i];
+}
+
+void ltob(unsigned long _longInt,byte _b[]){   // convert from an unsigned long int to a 4-byte array
+  _b[0] = ((_longInt >> 24) & 0xFF);
+  _b[1] = ((_longInt >> 16) & 0xFF);
+  _b[2] = ((_longInt >> 8) & 0XFF);
+  _b[3] = ((_longInt & 0XFF));
 }
 
 
