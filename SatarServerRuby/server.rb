@@ -166,7 +166,7 @@ post '/api/event/:nodeID/:eventKey' do
 		$connectionsDebug.each { |out| out << 
 			"data: got a time of #{diff} for rider #{riderId}\n\n"}
 		$connectionsResults.each { |out| out << 
-			"data: #{riderId};#{diff}\n\n"}
+			"data: #{riderId};#{diff.round(4)}\n\n"}
 	end
 
 	204
