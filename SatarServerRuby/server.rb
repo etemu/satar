@@ -101,7 +101,7 @@ post '/api/event' do
 			offsetNew = Time.now.to_f - timestamp
 			offsetOld = $redis.hget("node:#{nodeId}",'offset').to_f
 			# fliter out peaks
-			if offsetOld!=nil
+			if offsetOld > 0
 				if (offsetOld-offsetNew).abs > 0.1
 					offsetNew = offsetOld
 				else
