@@ -164,9 +164,9 @@ post '/api/event/:nodeID/:eventKey' do
 		time2 = $redis.get("event:#{eventKey}")
 		diff = (time2.to_f - time1.to_f).abs
 		$connectionsDebug.each { |out| out << 
-			"data: got a time of #{diff} for rider #{riderId}\n\n"}
+			"data: got a time of #{diff.round(4)} for rider #{riderId}\n\n"}
 		$connectionsResults.each { |out| out << 
-			"data: #{riderId};#{diff}\n\n"}
+			"data: #{riderId};#{diff.round(4)}\n\n"}
 	end
 
 	204
