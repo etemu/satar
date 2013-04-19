@@ -13,7 +13,7 @@
 		<h1>Settings</h1>
 		<div class="block">
 			<h2>Node ID</h2>
-			<input type="number" id="node" value="1"/>
+			<input type="number" id="node" width="4" value="1"/>
 		</div>
 	</div>
 </div>
@@ -21,6 +21,8 @@
 
 <script>
 	// reading
+	var id = sessionStorage.getItem(id);
+	$("#node").val(id)
 	var es = new EventSource('/api/stream/events');
 	es.onmessage = function(e) {
 		var data = e.data.split(';');
@@ -39,10 +41,8 @@
 		}
 	};
 	$("input").one( "click", function() {
-		$( this ).css( "width", "+=200" );
+		var value = $("#node").val();
+		sessionStorage.setItem(id,val);
 	});
 
 </script>
-
-<!-- onclick="$(this).css("background", "red")" -->
-<!-- <input class="submit" type="submit" onclick="$(\'#ev'+eventId+'\').remove();" value="Submit" /> \ -->
