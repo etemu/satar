@@ -101,8 +101,12 @@ post '/api/event' do
 			offsetNew = Time.now.to_f - timestamp
 			offsetOld = $redis.hget("node:#{nodeId}",'offset').to_f
 			# fliter out peaks
-			if offsetOld!=nil && (offsetOld-offsetNew).abs <= 0.01
-				offsetNew = (offsetNew+offsetOld)/2
+			if offsetOld!=nil
+				if (offsetOld-offsetNew).abs > 0.1
+					offsetNew = offsetOld
+				else
+					offsetNew = (offsetNew+offsetOld)/2
+				end
 			end
 			$connectionsDebug.each { |out| out << 
 				"data: #{Time.now.to_i}: (#{nodeId}) has an offset of #{offsetNew}\n\n"}	
