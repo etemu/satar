@@ -80,26 +80,26 @@ end
 
 ### API
 post '/api/event' do
-	timestamp = params['TSN'].to_f
+	timestamp = params['TSN'].to_i
 	eventId = params['EVENT'].to_i
 	nodeId = params['NODE'].to_i
 	statusId = params['ID'].to_i
 
 	$connectionsDebug.each { |out| out << 
-		"data: #{Time.now.to_i}: N#{nodeId}, E#{eventId}\n\n"}
+		"data: #{ts}: N#{nodeId}, E#{eventId}\n\n"}
 
 	case eventId
 	### status/bootup
 		when 0 
 			$connectionsDebug.each { |out| out << 
-				"data: #{Time.now.to_i}: (#{nodeId}) booted up\n\n"}
+				"data: #{ts}: (#{nodeId}) booted up\n\n"}
 			addNode(nodeId)
 
 	### status/keepalive
 		when 1
 			addNode(nodeId)
-			offsetNew = Time.now.to_f - timestamp
-			offsetOld = $redis.hget("node:#{nodeId}",'offset').to_f
+			offsetNew = (Time.now.to_f * 1000).floor - timestamp
+			offsetOld = $redis.hget("node:#{nodeId}",'offset').to_i
 			# fliter out peaks
 			if offsetOld > 0
 				if (offsetOld-offsetNew).abs > 0.1
@@ -109,23 +109,20 @@ post '/api/event' do
 				end
 			end
 			$connectionsDebug.each { |out| out << 
-				"data: #{Time.now.to_i}: (#{nodeId}) has an offset of #{offsetNew}\n\n"}	
+				"data: #{ts}: (#{nodeId}) has an offset of #{offsetNew}\n\n"}	
 			$redis.hmset("node:#{nodeId}",'status',statusId,'offset',offsetNew)
 			if $redis.hget("node:#{nodeId}",'status').to_i != statusId
 				$connectionsDebug.each { |out| out << 
-					"data: #{Time.now.to_i}: (#{nodeId}) changed status to #{statusId.to_s(2)}\n\n"}	
+					"data: #{ts}: (#{nodeId}) changed status to #{statusId.to_s(2)}\n\n"}	
 			end
 
 	### eventId >= 100: hardware event!
 		when 100..108
 		### log it
 			$connectionsDebug.each { |out| out << 
-				"data: #{Time.now.to_i}: N#{nodeId} triggered input #{eventId-100}\n\n"}
+				"data: #{ts}: N#{nodeId} triggered input #{eventId-100}\n\n"}
 
-		### 1. save it /w an unique id in a set
-		### 2. set its hash to its timestamp
-		### 3. send it so the stream /w an unique id
-			offset = $redis.hget("node:#{nodeId}",'offset').to_f
+			offset = $redis.hget("node:#{nodeId}",'offset').to_i
 			if offset!=nil
 				relativeTime = timestamp+offset
 				$redis.incr("event.id")
@@ -135,7 +132,7 @@ post '/api/event' do
 
 			
 				### stream it so that a riderId can be connected
-				timestring = Time.at(relativeTime).strftime("%H:%M:%S,%L")
+				timestring = Time.at(relativeTime.to_f/1000).strftime("%H:%M:%S,%L")
 				$connectionsEvent.each { |out| out << 
 					"data: #{nodeId};#{timestring};#{eventKey}\n\n"}
 			end
@@ -153,7 +150,7 @@ post '/api/event/:nodeID/:eventKey' do
 	riderId = params['riderId'].to_i
 	eventKey = params[:eventKey]
 	$connectionsDebug.each { |out| out << 
-		"data: #{Time.now.to_i}: connected event #{eventKey}/#{params[:nodeID]} with rider #{riderId}\n\n"}
+		"data: #{ts}: connected event #{eventKey}/#{params[:nodeID]} with rider #{riderId}\n\n"}
 	eventKey2 = $redis.get("time:#{riderId}")
 	if eventKey2 == nil
 		$redis.set("time:#{riderId}",eventKey)
@@ -162,11 +159,11 @@ post '/api/event/:nodeID/:eventKey' do
 	else
 		time1 = $redis.get("event:#{eventKey2}")
 		time2 = $redis.get("event:#{eventKey}")
-		diff = (time2.to_f - time1.to_f).abs
+		diff = (time2.to_i - time1.to_i).abs
 		$connectionsDebug.each { |out| out << 
-			"data: got a time of #{diff.round(4)} for rider #{riderId}\n\n"}
+			"data: got a time of #{diff}ms for rider #{riderId}\n\n"}
 		$connectionsResults.each { |out| out << 
-			"data: #{riderId};#{diff.round(4)}\n\n"}
+			"data: #{riderId};#{diff}\n\n"}
 	end
 
 	204
@@ -224,7 +221,7 @@ helpers do
 		for node in allNodes do
 			base << "<li>#{node['id'].to_s.rjust(3,"0")}:" 
 			base << "st #{node['status'].to_i.to_s(2).rjust(3,"0")} "
-			base << "of #{node['offset'].to_f.round(4)}</li>"
+			base << "of #{node['offset']}</li>"
 		end
 	 	base += "</ul>"
 
@@ -241,6 +238,9 @@ helpers do
 	 	return nodes
 	end
 
+	def ts
+		Time.now.strftime("%H:%M:%S,%L")
+	end
 ### db helpers
 	def addNode(nodeId)
 		if $redis.sadd('nodes', nodeId) == true
@@ -248,7 +248,7 @@ helpers do
 			# but makes it easier so iterate trough all nodes later
 			$redis.hset("node:#{nodeId}",'id',nodeId)
 			$connectionsDebug.each { |out| out << 
-				"data: #{Time.now.to_i}: Added new node (#{nodeId})\n\n"}
+				"data: #{ts}: Added new node (#{nodeId})\n\n"}
 		end
 	end
 end
