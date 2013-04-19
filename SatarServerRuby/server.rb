@@ -39,7 +39,8 @@ config = YAML.load_file("./_config/config.yml")
 if config['redis']['mode'] == 0
 	$redis = Redis.new(:path => config["redis"]["socket"])
 else
-	$redis = Redis.new(:host => config["redis"]["host"], :port => config["redis"]["port"])
+	$redis = Redis.new(:host => config["redis"]["host"],
+					   :port => config["redis"]["port"])
 end
 
 $redis.select(config["redis"]["number"])
@@ -134,7 +135,7 @@ post '/api/event' do
 #			$connectionsEvent.each { |out| out << "data: #{nodeId};#{timestring};#{$trigger}\n\n"}
 #			$trigger+=1
 
-		when 100<=eventId<=120
+		when 100..108
 			# log it
 			$connectionsDebug.each { |out| out << "data: #{Time.now.to_i}: N#{nodeId} triggered input #{eventId-100}\n\n"}
 
