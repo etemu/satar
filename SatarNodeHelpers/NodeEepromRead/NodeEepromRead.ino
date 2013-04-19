@@ -1,5 +1,5 @@
 /*
- * Read out the first 16 EEPROM values.
+ * Read out the first 32 EEPROM values.
  *
  */
 
@@ -23,7 +23,6 @@ void loop()
 {
   // read a byte from the current address of the EEPROM
   value = EEPROM.read(address);
-  
   Serial.print(address);
   Serial.print("\t");
   Serial.print(value, DEC);
@@ -32,7 +31,7 @@ void loop()
   // advance to the next address of the EEPROM
   address = address + 1;
   
-  if (address == 16){ //do nothing furthermore.
+  if (address >= 16){ //do nothing furthermore.
     while(i<1337) {
     delay(42);
   }
