@@ -27,6 +27,7 @@
 		var nodeId = data[0];
 		var value = $("#node").val();
 		var eventId = data[2];
+		console.log(data);
 		if (value == nodeId)
 		{
 			var form = '<form action="/api/event/'+nodeId+'/'+eventId+'" method="post"> \
