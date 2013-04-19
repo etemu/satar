@@ -21,13 +21,14 @@
 
 <script>
 	// reading
-	var id = sessionStorage.getItem(id);
-	$("#node").val(id)
+	var id = sessionStorage.getItem('id');
+	$("#node").val(id);
 	var es = new EventSource('/api/stream/events');
 	es.onmessage = function(e) {
 		var data = e.data.split(';');
 		var nodeId = data[0];
 		var value = $("#node").val();
+		sessionStorage.setItem('id',value);
 		var eventId = data[2];
 		console.log(data);
 		if (value == nodeId)
@@ -40,9 +41,4 @@
 			$('#events').prepend(wrapper+data[1]+'  riderID:'+form+'</div>');
 		}
 	};
-	$("input").one( "click", function() {
-		var value = $("#node").val();
-		sessionStorage.setItem(id,value);
-	});
-
 </script>
