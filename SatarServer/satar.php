@@ -5,15 +5,15 @@
 //    .__)__)   /__/\__\   |_|   /__/\__\   |_|\_\
 //  System for Advanced Timekeeping and Amateur Racing.
 //
-//  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
-//  !!   Do not change any code in this file.  !!
-//  !! All configuration is made in config.php !!
-//  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+//  !!   Do not change any code in this file.  		  !!
+//  !! All configuration is made in config/config.php !!
+//  ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
 //
 include 'config/config.php';
 include 'config/satardb.php';
 
-// store the values incoming GET request -> MySQL database
+// store the values of the incoming GET request -> MySQL database
 
 $sql="INSERT INTO satar (TSN,EVENT,ID,NODE)
 VALUES
@@ -24,29 +24,28 @@ if (!mysql_query($sql,$con))
   die('ERR: DB ' . mysql_error());
   }
 
-echo "ACK: Database\n";
-
+echo "ETH: SQL ACK.\n";
 mysql_close($con);
 
 // Submit this array to the Ruby API for further processing
 
 $post_data = array(
-    'TSN' => $_REQUEST[T],
-    'EVENT' => $_REQUEST[E],
-	'ID' => $_REQUEST[I],
-    'NODE' => $_REQUEST[N]
+    'TSN' => $_REQUEST['T'],
+    'EVENT' => $_REQUEST['E'],
+	'ID' => $_REQUEST['I'],
+    'NODE' => $_REQUEST['N']
 );
  
 // Send a POST request to the server API 
-$result = post_request($ruby_APIurl, $post_data);
+$result = post_request($ruby_APIhost, $ruby_APIpath, $ruby_APIport, $post_data);
  
 if ($result['status'] == 'ok'){
  
 	if ($result['content'])
-		echo "WRN: SatarServerAPI ERR\n";
+		echo "WRN: !SSR API ERR\n";
 		
 	if ($result['content']=='')
-		echo "ACK: SatarServerAPI\n";
+		echo "ETH: SSR ACK.\n";
 	
 	// Print headers 
     // echo $result['header']; 
@@ -59,28 +58,35 @@ if ($result['status'] == 'ok'){
  
 }
 else {
-    echo 'ERR: SatarServerAPI: ' . $result['error']; 
+    echo 'ERR: SSR API: ' . $result['error']; 
 }
 
 
-function post_request($url, $data, $referer='') {
+function post_request($host, $path, $port, $data, $referer='SatarServer') {
  
     // Convert the data array into URL Parameters like a=b&foo=bar etc.
     $data = http_build_query($data);
  
-    // parse the given URL
-    $url = parse_url($url);
+    // parse the given URL (aShure: deprecated)
+    /* $url = parse_url($url);
  
     if ($url['scheme'] != 'http') { 
-        die('ERR: Invalid HTTP req.');
+        die('ERR: Not a http scheme.');
     }
- 
-    // extract host and path:
-    $host = $url['host'];
-    $path = $url['path'];
- 
-    // open a socket connection on port 80 - timeout: 8 sec
-    $fp = fsockopen($host, 80, $errno, $errstr, 8);
+	*/
+	
+	/*
+    // debug host and path:
+    //$host = $ruby_APIhost;
+	echo 'DEB: ruby_APIhost: ' . $host . '<br>';
+    //$path = $ruby_APIpath;
+	echo 'DEB: ruby_APIpath: ' . $path . '<br>';
+	//$port = $ruby_APIport;
+	echo 'DEB: ruby_APIport: ' . $port . '<br>';
+	*/
+	
+    // open a socket connection on port $ruby_APIport - timeout: 8 sec
+    $fp = fsockopen($host, $port, $errno, $errstr, 8);
  
     if ($fp){
  
