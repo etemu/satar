@@ -13,16 +13,19 @@
 		<h1>Settings</h1>
 		<div class="block">
 			<h2>Node ID</h2>
-			<input type="number" id="node" width="4" value="1"/>
+			<input type="number" id="node" width="4"/>
 		</div>
 	</div>
 </div>
 
 
 <script>
-	// reading
-	var id = sessionStorage.getItem('id');
-	$("#node").val(id);
+	// load value for the node field
+	$(document).ready(function() {
+		var id = sessionStorage.getItem('id');
+		$("#node").val(id);
+	});
+	// streaming
 	var es = new EventSource('/api/stream/events');
 	es.onmessage = function(e) {
 		var data = e.data.split(';');
@@ -30,11 +33,10 @@
 		var value = $("#node").val();
 		sessionStorage.setItem('id',value);
 		var eventId = data[2];
-		console.log(data);
 		if (value == nodeId)
 		{
 			var form = '<form action="/api/event/'+nodeId+'/'+eventId+'" method="post"> \
-							<input type="number" name="riderId" id="node" value="1"/> \
+							<input type="number" name="riderId" id="riderId" value="1"/> \
 							<input class="submit" type="submit" onclick="$(\'#ev'+eventId+'\').css(\'background\',\'gray\');" value="Submit" /> \
 						</form>';
 			var wrapper = '<div class="row" id="ev'+eventId+'">';
