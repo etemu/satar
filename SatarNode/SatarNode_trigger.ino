@@ -8,7 +8,7 @@ void trigger_two(){
 } 
 
 void checkTriggerOne(){
-  
+
   if (oneTriggered){
     oneTriggeredMicros=micros()-oneTriggeredMicros;           // this is our time which will be used as the event time
     oneTriggeredMillis=millis();           // this is our time which will be used as the event time
@@ -20,15 +20,15 @@ void checkTriggerOne(){
   if (!trigger_one_armed){                 //if the trigger is not armed then check if we should arm it again:
     if (millis() - oneTriggeredMillis >= triggerIntervalOne) //minimum delay between two events which will actually get logged: triggerInterval*
     {
-     attachInterrupt(0, trigger_one, LOW); //let's arm the trigger again
       trigger_one_armed=1;                 //set the helper flag, so we now that the trigger is armed
-	 Serial.println("ISR: 1 UP.");
-	}; 
+      Serial.println("ISR: 1 UP.");
+      attachInterrupt(0, trigger_one, LOW); //let's arm the trigger again      
+    }; 
   }
 }
 
 void checkTriggerTwo(){
-  
+
   if (twoTriggered){
     twoTriggeredMicros=micros()-twoTriggeredMicros;           // this is our time which will be used as the event time
     twoTriggeredMillis=millis();           // this is our time which will be used as the event time
@@ -40,9 +40,10 @@ void checkTriggerTwo(){
   if (!trigger_two_armed){                 //if the trigger is not armed then check if we should arm it again:
     if (millis() - twoTriggeredMillis >= triggerIntervalTwo) //minimum delay between two events which will actually get logged: triggerInterval*
     {
-     attachInterrupt(0, trigger_two, LOW); //let's arm the trigger again
       trigger_two_armed=1;                 //set the helper flag, so we now that the trigger is armed
-	 Serial.println("ISR: 2 UP.");
-	}; 
+      Serial.println("ISR: 2 UP.");
+      attachInterrupt(0, trigger_two, LOW); //let's arm the trigger again      
+    }; 
   }
 }
+

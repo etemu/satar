@@ -9,55 +9,40 @@
 //    .__)__)   /__/\__\   |_|   /__/\__\   |_|\_\
 //  System for Advanced Timekeeping and Amateur Racing.
 //
-// This firmware is meant for a SATAR controller node, which
-// communicates to to a remote server over TCP/IP.
-// Hardware: Atmel AtMega 328 or higher, Microchip ENC28J60
-// Uses hardware SPI enabled with eth0 SPI CSN at port 10.
-// AtMega clocked at 16Mhz, Microchip clocked at 25Mhz.
-// CC-BY-SA 3.0: This work is Open Source and licensed under
-// the Creative Commons Attribution-ShareAlike 3.0 License.
-//
-// SATAR node controller
-// 2.1b 201205061419 Shure: port to Microchip ENC28J60
-// 2.2b 201205091412 Shure: added dhcp functionality
-// 2.3b 201205091919 Shure: port to WizNet W5100
-// 2.6b 201205100356 Shure: building the TCP/IP payload
-// 2.7b 201205101733 Shure: bugfixing, TSN did not rise
-// 2.8b 201205121620 Shure: outsourced the W5100 code
-// 2.9b 201205150149 Shure: merge satar_timing from satar6
-// 2.10 201205150332 Shure: interrupt service routine redesign
-// 2.11 201206071741 Shure: fork to W5100 due to buggy ISR+ENC28J60
-// 2.12 201209010523 Shure: SD card logging (out of RAM :| )
-// 2.13 201304060158 Shure: decrease payload buffer 48->42
-// 2.14 201304062342 Shure: fix MAC + http request forging
-// 2.15 201304070211 Shure: strip out the http reply answer's header
-// 2.16 201304070317 Shure: no consistent connectivity (WIP)
-// 2.17 201304070400 Shure: outsource chip dependent code
-// 2.18 201304071818 Shure: implement code for ENC28J60
-// 2.19 201304081924 Shure: keepalive packet forging
-// 2.20 201304131925 Shure: read out MAC+nodeID from EEPROM
-// 2.21 201304200212 Shure: Fix IP compilation and read out Gateway 
-//
-// ** MOSI - pin 11
-// ** MISO - pin 12
-// ** CLK - pin 13
-// ** CS - pin 4 for SD card interface
-// ** CS - pin 10 for W5100 ethernet interface
-// ** CS - pin 8 for ENC28J60 ethernet interface
-//
 ////////////////////////////////// BEGIN Config
 
 #define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
-
+// v2.3: 20834 vs 19786 debug mode vs non-debug mode
 byte nodeID = 11; // Unique Node Identifier (2...254) - also the last byte of the IPv4 adress, not used if USE_EEPROM is set
 #define USE_EEPROM // read nodeID and network settings from EEPROM at bootup, overwrites nodeID and MAC.
 #define REQUEST_RATE 30000L // request rate of webpage query in ms, for debugging
-#define KEEPALIVE_RATE 8000L // request rate of sendKeepalive in ms
+#define KEEPALIVE_RATE 32768L // request rate of sendKeepalive in ms
+
+// begin timetravel config
+#include <EthernetUdp.h>         // UDP library from bjoern@cs.stanford.edu
+#define SYNC_RATE 16000L // update interval for time exchange UDP packets between nodes
+#define PROCTIME 1912L // 201304162000 aShure, 16Mhz Atmega 328
+#define T_DELAY 980L // minimum processing time until T packet is sent out
+#define PROC_DELAY 309L; // minimum reaction time to any packet type
+#define R_DELAY 1136L // minimum processing time until R packet can be replied
+#define R_ADVANCE 414L // Anticipated propagation time, shifts the 'R' time into the middle of the round trip.
+// (PROC_DELAY + R_DELAY ) DIV 2 - PROC_DELAY
+unsigned int localPort = 8888;      // local UDP port to listen on
+unsigned long micros1 = 0;
+unsigned long sentTime = 0;
+byte nodes[]={
+  7,9}; //TODO: read node network topology setup from EEPROM
+byte currentNode=0;
+byte nodeIDindex=0;
+const byte amountNodes=2;
+unsigned long nodeStamps[2]; //holds timestamps from the nodes
+char packetBuffer[8]; //buffer to hold incoming packet, standard: 24 chars/bytes
+EthernetUDP Udp; // An Ethernet UDP instance to let us send and receive packets over UDP
+// end timetravel config
 
 #define W5100 // use the Wiznet W5100 ethernet controller
 //#define USE_SD // only together with W5100
 //#define ETHERCARD // use the Microchip ENC28J60 controller
-
 #include <EEPROM.h>
 #include <SPI.h>
 //#include <Timer.h> //Timer lib for non blocking delay
@@ -179,6 +164,7 @@ void setup () {
   IPAddress gw(EEPROM.read(11), EEPROM.read(12), EEPROM.read(13), EEPROM.read(14)); // static IP of the gateway
   #endif
   Ethernet.begin(mac, ip, gw, gw, subnet);
+  Udp.begin(localPort);
   Serial.print("ETH: Node IP: ");
   Serial.println(Ethernet.localIP());
   #endif
@@ -234,17 +220,14 @@ digitalWrite(CS_ETH, LOW); // CS ethernet
 printRAM();
 pinMode(5, OUTPUT); // LED at pin 5, on when busy with sending and receiving in subfunction.
 
-#ifdef DEBUG
-/*  int tkeepalive = t.every(KEEPALIVE_RATE, sendHeartbeat); // create a thread to send a heartbeat to the server
-  Serial.print(" PS: Heartbeat thread: ");
-  Serial.println(tkeepalive);
-  */
-/*
-  int ledEvent = t.oscillate(3, 25, HIGH);
-  Serial.print(" PS: LED thread: ");
-  Serial.println(ledEvent);
-  */
-#endif
+  // enumerate the nodes and check which index we have
+ for (byte i = 0; (i+1)<=amountNodes ; i++) { //check which array index is our nodeID
+    if(nodes[i]==nodeID) nodeIDindex=i;
+  }
+  Serial.print("nodeIDindex: ");
+  Serial.print(nodeIDindex);
+  Serial.print(", nodes[nodeIDindex]: ");
+  Serial.println(nodes[nodeIDindex]);
 
   sendStatus(0); // send the initial status packet, 0 = bootup successful
 }
@@ -253,24 +236,24 @@ pinMode(5, OUTPUT); // LED at pin 5, on when busy with sending and receiving in 
 
 void loop () {
 
-  delay(1); // provide some down time for the status LED duty cycle
-  digitalWrite(5, HIGH); //LED at pin 3 as a status indicator, high when busy.
-   
   checkTriggerOne();
   // checkTriggerTwo();
-  //  timer_ms=millis();
   //  timer_us=micros();
    
   if (millis() > timer_ms + KEEPALIVE_RATE) {
       sendStatus(1); //send a heartbeat packet to the server and signal our health, also used for time sync
       timer_ms = millis();
     }
-  
   #ifdef ETHERCARD
     ether.packetLoop(ether.packetReceive()); // read out the ethernet buffer frequently.
   #endif
   
   #ifdef W5100
+  if (millis() > timer_ms + SYNC_RATE) {
+    timeTravel(); // send out a TimeTravel packet to a node from the node list array 'nodes[]'.
+  }
+  recvUdp();  // call the UDP handler - if there's data available, read a packet and act accordingly.
+  digitalWrite(5, HIGH); //LED at pin 3 as a status indicator, high when busy.
   eth_reply_w5100(); // read out the ethernet buffer frequently.
   #endif
  
