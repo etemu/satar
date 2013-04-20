@@ -38,8 +38,8 @@ void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned 
 if (cardLog){
     logPacketToCard(payloadString); // Log the forged payload string to the SD card.
   }
-  char payload[82]; // this is the whole payload as a char array.
-  payloadString.toCharArray(payload, 82); // convert String into char* and fill the buffer 
+  char payload[8]; // this is the whole payload as a char array.
+  payloadString.toCharArray(payload, 8); // convert String into char* and fill the buffer 
 
   #ifdef DEBUG
 //    Serial.print("DEB: Timer  : ");

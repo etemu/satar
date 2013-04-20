@@ -45,12 +45,9 @@ void sendT(byte _nodeID = 0)
 }
 
 void timeTravel(){
-  if (nodes[currentNode]==nodeID) currentNode++;
-  //  if (currentNode>=amountNodes) currentNode=0;
-  if (currentNode>=3) currentNode=0;
-  currentNode=0;
-  sendT(nodes[currentNode]);
-  //  currentNode++;
+  if (nodeIDindex>=1) currentNode=0; //TODO: implement for more than two active nodes.
+  if (nodeIDindex==0) currentNode=1;
+  sendT(nodes[currentNode]); 
   timer_ms = millis();
 }
 
