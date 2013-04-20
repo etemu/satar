@@ -85,6 +85,11 @@ post '/api/event' do
 			$connectionsDebug.each { |out| out <<
 				"data: #{ts}: (#{nodeId}) booted up\n\n"}
 			addNode(nodeId)
+
+			# reset the offset
+			offsetNew = (Time.now.to_f * 1000).floor - timestamp
+			$redis.hset("node:#{nodeId}",'offset',offsetNew)
+
 		### status/keepalive
 		when 1
 			addNode(nodeId)
@@ -92,7 +97,7 @@ post '/api/event' do
 			offsetOld = $redis.hget("node:#{nodeId}",'offset').to_i
 			# fliter out peaks
 			if offsetOld > 0
-				if (offsetOld-offsetNew).abs > 0.1
+				if (offsetOld-offsetNew).abs > 250
 					offsetNew = offsetOld
 				else
 					offsetNew = (offsetNew+offsetOld)/2
