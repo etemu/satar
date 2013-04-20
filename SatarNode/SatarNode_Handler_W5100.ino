@@ -17,7 +17,7 @@ void sendPacket(char* payload){
     client.print("Host: ");
     client.println(website);    
     client.println();
-	timer_us = micros();
+    timer_us = micros();
   } 
   else {
     Serial.println("\nETH:!Connect to SatarServer failed.");
@@ -27,6 +27,7 @@ void sendPacket(char* payload){
 // function eth_reply_w5100 is called when the client request is complete
 static void eth_reply_w5100()
 { 
+  if (client.available()){
   unsigned long timer_us2 = micros()-timer_us;
   boolean printingPacket = false;
   char lastEthPacket;
@@ -49,6 +50,7 @@ static void eth_reply_w5100()
     Serial.println("ACK\n");
   }
  lastConnected = client.connected();
+ }
  }
 }
 #endif

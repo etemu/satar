@@ -1,10 +1,8 @@
 
 
 void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned int ID) {    
-  if (DEBUG) {
-    unsigned long timeStampEvent = timer_ms; //DEBUG
-  }
-  unsigned long timer_micros1= micros();
+
+  unsigned long timer_micros1=micros();
 
   // constructing the packet which will be transmitted to the remote server:
   String payloadString; // this is the whole payload, the package that will
@@ -40,12 +38,11 @@ if (cardLog){
 sendPacket(payload); //send out the forged packet to the ethernet chip via SPI
 
   // client.println();  ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply); // ENC
-
-  if (DEBUG) {
+#ifdef DEBUG
     Serial.print("DEB: forge&sendPacket done in ");
     Serial.print(micros()-timer_micros1);
     Serial.println(" us.");
-  }
+#endif
 }
 
 
