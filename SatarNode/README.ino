@@ -30,6 +30,7 @@
 // 2.31 201304201645 Shure: code + RAM optimization: 20432 bytes flash usage
 // 2.32 201304211744 Shure: Uno: 20758 Leo: 23584
 // 2.33 201304211752 Shure: Uno: 20872 Leo: 23698 - after switch to F(); strings
+// 2.34 201304212217 Shure: transmit buffer set to 96b, implement TimeTravel
 // 
 // ** MOSI - pin 11
 // ** MISO - pin 12

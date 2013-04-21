@@ -1,18 +1,21 @@
 void trigger_one(){ 
-  detachInterrupt(0);                    // disable the interrupt, so it won't bother us while we process the event
-  oneTriggered=1;       //set flag to 1 when interrupt is triggered by a FALLING edge
-  oneTriggeredMicros=micros();           // this is our time which will be used as the event time
+  detachInterrupt(0);          // disable the interrupt, so it won't bother us while we process the event
+  oneTriggered=1;              //set flag to 1 when interrupt is triggered
+  oneTriggeredMicros=micros(); // this is our time which will be used as the event time
 } 
+
 void trigger_two(){ 
-  twoTriggered=1;      //set flag to 1 when interrupt is triggered by a FALLING edge
+  detachInterrupt(1);          // disable the interrupt, so it won't bother us while we process the event
+  twoTriggered=1;      //set flag to 1 when interrupt is triggered
+  twoTriggeredMicros=micros(); // this is our time which will be used as the event time
 } 
 
 void checkTriggerOne(){
 
   if (oneTriggered){
-    oneTriggeredMicros=micros()-oneTriggeredMicros;           // this is our time which will be used as the event time
+    //oneTriggeredMicros;           // this is our time which will be used as the event time
     oneTriggeredMillis=millis();           // this is our time which will be used as the event time
-    Serial.println(F("ISR: 1 DOWN."));
+    Serial.println(F("ISR: 1 fired."));
     forgePacket(oneTriggeredMicros,101,0);  // send the acquired data: ms, eventID, riderID
     oneTriggered=0;                        // reset the trigger flag
     trigger_one_armed=0;                   // set the helper flag, so we now that the trigger is not armed for now
@@ -21,7 +24,7 @@ void checkTriggerOne(){
     if (millis() - oneTriggeredMillis >= triggerIntervalOne) //minimum delay between two events which will actually get logged: triggerInterval*
     {
       trigger_one_armed=1;                 //set the helper flag, so we now that the trigger is armed
-      Serial.println(F("ISR: 1 UP."));
+      Serial.println(F("ISR: 1 armed."));
       attachInterrupt(0, trigger_one, LOW); //let's arm the trigger again      
     }; 
   }
@@ -30,10 +33,10 @@ void checkTriggerOne(){
 void checkTriggerTwo(){
 
   if (twoTriggered){
-    twoTriggeredMicros=micros()-twoTriggeredMicros;           // this is our time which will be used as the event time
+    //twoTriggeredMicros;           // this is our time which will be used as the event time
     twoTriggeredMillis=millis();           // this is our time which will be used as the event time
-    Serial.println(F("ISR: 2 DOWN."));
-    forgePacket(twoTriggeredMicros,101,0);  // send the acquired data: ms, eventID, riderID
+    Serial.println(F("ISR: 2 fired."));
+    forgePacket(twoTriggeredMicros,102,0);  // send the acquired data: ms, eventID, riderID
     twoTriggered=0;                        // reset the trigger flag
     trigger_two_armed=0;                   // set the helper flag, so we now that the trigger is not armed for now
   }
@@ -41,7 +44,7 @@ void checkTriggerTwo(){
     if (millis() - twoTriggeredMillis >= triggerIntervalTwo) //minimum delay between two events which will actually get logged: triggerInterval*
     {
       trigger_two_armed=1;                 //set the helper flag, so we now that the trigger is armed
-      Serial.println(F("ISR: 2 UP."));
+      Serial.println(F("ISR: 2 armed."));
       attachInterrupt(0, trigger_two, LOW); //let's arm the trigger again      
     }; 
   }
