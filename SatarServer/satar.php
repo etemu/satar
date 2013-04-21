@@ -15,9 +15,9 @@ include 'config/satardb.php';
 
 // store the values of the incoming GET request -> MySQL database
 
-$sql="INSERT INTO satar (TSN,EVENT,ID,NODE)
+$sql="INSERT INTO $sql_table (T_ID,T,U_ID,U,E,I,N)
 VALUES
-('$_REQUEST[T]','$_REQUEST[E]','$_REQUEST[I]','$_REQUEST[N]')";
+('$_REQUEST[T_ID]','$_REQUEST[T]','$_REQUEST[U_ID]','$_REQUEST[U]','$_REQUEST[E]','$_REQUEST[I]','$_REQUEST[N]')";
 
 if (!mysql_query($sql,$con))
   {
@@ -30,8 +30,11 @@ mysql_close($con);
 // Submit this array to the Ruby API for further processing
 
 $post_data = array(
-    'TSN' => $_REQUEST['T'],
-    'EVENT' => $_REQUEST['E'],
+    'T_ID' => $_REQUEST['T_ID'],
+	'T' => $_REQUEST['T'],
+	'U_ID' => $_REQUEST['U_ID'],
+	'U' => $_REQUEST['U'],
+	'EVENT' => $_REQUEST['E'],
 	'ID' => $_REQUEST['I'],
     'NODE' => $_REQUEST['N']
 );
