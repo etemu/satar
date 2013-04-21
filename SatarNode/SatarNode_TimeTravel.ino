@@ -16,7 +16,7 @@ void sendR()
   sentTime=micros()-52L;
   //1136 us from last micros1 update
 #ifdef DEBUG
-  Serial.print("UDP:<-> sentR to node ");
+  Serial.print(F("UDP:<-> sentR to node "));
   Serial.println(packetBuffer[0],DEC);
 #endif
 }
@@ -25,7 +25,7 @@ void sendT(byte _nodeID = 0)
 { 
   if (_nodeID == nodeID) return; // I don't want to talk to myself..
 #ifdef DEBUG
-  Serial.print("UDP:-> sendT to ");
+  Serial.print(F("UDP:-> sendT to "));
   Serial.println(_nodeID);
 #endif  
   IPAddress rip(192,168,8,_nodeID);
@@ -80,18 +80,18 @@ void handlePacket_R(){
   unsigned long replyTime=micros1-sentTime-PROC_DELAY;
 #ifdef DEBUG
   IPAddress remote = Udp.remoteIP();
-  Serial.print("UDP: <- recv in ");
+  Serial.print(F("UDP: <- recv in "));
   Serial.print(replyTime);
-  Serial.print(" us from ");
+  Serial.print(F(" us from "));
   for (int i =0; i < 4; i++)
   {
     Serial.print(remote[i], DEC);
     if (i < 3)
     {
-      Serial.print(".");
+      Serial.print(F("."));
     }
   }
-  Serial.print(":");
+  Serial.print(F(":"));
   Serial.println(Udp.remotePort());
 #endif
   byte recvB[6];
@@ -102,21 +102,22 @@ void handlePacket_R(){
   nodeStamps[nodeIDindex]=sentTime;
   nodeStamps[currentNode]=remoteT-hopTime;
 #ifdef DEBUG
-  Serial.print("UDP:    TripTime: ");
+  Serial.print(F("UDP:    TripTime: "));
   Serial.print(replyTime);
-  Serial.println(" us.");
-  Serial.print("UDP:   TSN");
+  Serial.println(F(" us."));
+  Serial.print(F("UDP:   TSN"));
   Serial.print(nodeID);
-  Serial.print(": ");
+  Serial.print(F(": "));
   Serial.println(nodeStamps[nodeIDindex]);
-  Serial.print("UDP: <-TSN");
+  Serial.print(F("UDP: <-TSN"));
   Serial.print(nodes[currentNode]);
-  Serial.print(": ");  
+  Serial.print(F(": "));  
   Serial.println(nodeStamps[currentNode]);
 #endif
-  Serial.print("UDP:    TSdelta: ");
-  if (nodeStamps[currentNode]>=nodeStamps[nodeIDindex]) Serial.println(nodeStamps[currentNode]-nodeStamps[nodeIDindex]);
-  if (nodeStamps[currentNode]<nodeStamps[nodeIDindex]) Serial.println(nodeStamps[nodeIDindex]-nodeStamps[currentNode]);
+  Serial.print(F("UDP:    TSdelta: "));
+  if (nodeStamps[currentNode]>=nodeStamps[nodeIDindex]) Serial.print((nodeStamps[currentNode]-nodeStamps[nodeIDindex])/1000);
+  if (nodeStamps[currentNode]<nodeStamps[nodeIDindex]) Serial.print((nodeStamps[nodeIDindex]-nodeStamps[currentNode])/1000);
+  Serial.println(F(" ms."));
 }
 
 void ctob(char* _chars, byte* _bytes, unsigned int _count){

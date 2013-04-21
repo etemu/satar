@@ -17,10 +17,10 @@ byte nodeID = 11; // Unique Node Identifier (2...254) - also the last byte of th
 #define USE_EEPROM // read nodeID and network settings from EEPROM at bootup, overwrites nodeID and MAC.
 #define REQUEST_RATE 30000L // request rate of webpage query in ms, for debugging
 #define KEEPALIVE_RATE 32768L // request rate of sendKeepalive in ms
-
+#include <MemoryFree.h>
 // begin timetravel config
 #include <EthernetUdp.h>         // UDP library from bjoern@cs.stanford.edu
-#define SYNC_RATE 16000L // update interval for time exchange UDP packets between nodes
+#define SYNC_RATE 8000L // update interval for time exchange UDP packets between nodes
 #define PROCTIME 1912L // 201304162000 aShure, 16Mhz Atmega 328
 #define T_DELAY 980L // minimum processing time until T packet is sent out
 #define PROC_DELAY 309L; // minimum reaction time to any packet type
@@ -39,7 +39,6 @@ unsigned long nodeStamps[2]; //holds timestamps from the nodes
 char packetBuffer[8]; //buffer to hold incoming packet, standard: 24 chars/bytes
 EthernetUDP Udp; // An Ethernet UDP instance to let us send and receive packets over UDP
 // end timetravel config
-
 #define W5100 // use the Wiznet W5100 ethernet controller
 //#define USE_SD // only together with W5100
 //#define ETHERCARD // use the Microchip ENC28J60 controller
@@ -56,14 +55,14 @@ EthernetUDP Udp; // An Ethernet UDP instance to let us send and receive packets 
 #include <EtherCard.h> // library to interface ENC28J60 with integrated TCP stack
 #endif
 
-#ifdef W5100
+#ifdef W5100 // obsolete due to bug in the SPI lib: https://github.com/arduino/Arduino/issues/1280
 const short CS_SD = 4; // ** CS - pin 4 for SD card
 const short CS_ETH = 10; // ** CS - pin 10 for ethernet
 #endif
 
 // #define EthernetType 1 // type of ethernet hardware: 0=Microchip ENC28J60, 1=Wiznet W5100
 
-static byte mac[] = { 0xDE, 0xAD, 0xBE, 0xEF, 0xFE, 0x14 }; // ethernet interface mac address, not used if USE_EEPROM is set
+static byte mac[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; // ethernet interface mac address, not used if USE_EEPROM is set
 static char website[] = "etemu.com"; // remote server, TLD/vHost
 IPAddress website_ip(192,168,8,113); // the IP from the website - optional, used for debugging purposes
 
@@ -119,16 +118,16 @@ static boolean cardLog = 0;
 // Timer t; // Timer lib for non-blocking periodic calls
 
 void printRAM(){
-  #ifdef USE_SD
-  Serial.print("RAM: ");
-  Serial.print(FreeRam());
-  Serial.println(" bytes free.");
+  #ifdef DEBUG
+  Serial.print(F("RAM: "));
+  Serial.print(freeMemory());
+  Serial.println(F(" b free."));
   #endif
 }
 
 void sendStatus(int nodeStatus=1){ // keepalive packet to the server, doubles as a status packet if the inputs are armed
   #ifdef DEBUG
-  Serial.println("DEB: Emit heartbeat <3:");
+  Serial.println(F("DEB: Emit heartbeat <3:"));
   #endif
   byte armedID = 1;
 //  armedID = trigger_two_armed << 1;  //B000000X0
@@ -138,26 +137,27 @@ void sendStatus(int nodeStatus=1){ // keepalive packet to the server, doubles as
 
 void setup () {
   Serial.begin(115200); // init serial connection for debugging
-  #ifdef USE_SD
-  pinMode(CS_SD, OUTPUT); // CS SD card
-  pinMode(CS_ETH, OUTPUT); // CS hardware SPI, e.g. ethernet
-  #endif
+//  #ifdef USE_SD // obsolete due to bug in the SPI lib: https://github.com/arduino/Arduino/issues/1280
+//  pinMode(CS_SD, OUTPUT); // CS SD card
+//  pinMode(CS_ETH, OUTPUT); // CS hardware SPI, e.g. ethernet
+//  #endif
   pinMode(onePin, INPUT); //ISR only at portpins 2 and 3
   pinMode(twoPin, INPUT); //ISR only at portpins 2 and 3 TODO: fix the wiring
   while (!Serial) {
     ; // wait for serial port to connect. Needed for Arduino Leonardo < only
   }
-  Serial.println("\n_____________________");
-  Serial.println("== [SATAR Controller]");
-  Serial.println("== CC-BY-SA-NC 3.0");
-  Serial.print("STR: Node ID: ");
+  Serial.println(F("\n_____________________"));
+  Serial.println(F("== [SATAR Controller]"));
+  Serial.println(F("== CC-BY-SA-NC 3.0"));
+  Serial.print(F("STR: Node ID: "));
   #ifdef USE_EEPROM
   nodeID=EEPROM.read(0);
-  Serial.print("EEPROM, ");
+  Serial.print(F("EEPROM, "));
   #endif
   Serial.println(nodeID);
+  printRAM();
   #ifdef W5100
-  Serial.println("ETH: (SPI) Wiznet W5100 (100-baseT).");
+  Serial.println(F("ETH: (SPI) Wiznet W5100 (100-baseT)."));
   #ifdef USE_EEPROM
   static byte mac[] = { EEPROM.read(1), EEPROM.read(2), EEPROM.read(3), EEPROM.read(4), EEPROM.read(5), EEPROM.read(6) }; // ethernet interface mac address
   IPAddress ip(EEPROM.read(7), EEPROM.read(8), EEPROM.read(9), EEPROM.read(10)); // static IP of the node
@@ -165,31 +165,25 @@ void setup () {
   #endif
   Ethernet.begin(mac, ip, gw, gw, subnet);
   Udp.begin(localPort);
-  Serial.print("ETH: Node IP: ");
+  Serial.print(F("ETH: Node IP: "));
   Serial.println(Ethernet.localIP());
   #endif
-  
   #ifdef ETHERCARD
-  Serial.println("ETH: (SPI) Microchip ENC28J60 (10-baseT).");
+  Serial.println(F("ETH: (SPI) Microchip ENC28J60 (10-baseT)."));
   if (ether.begin(sizeof Ethernet::buffer, mac) == 0){ 
-  Serial.println( "ETH:!Failed to access ENC28J60 controller.");}
+  Serial.println(F("ETH:!Failed to access ENC28J60 controller."));}
   ether.staticSetup(ip, gw);
-  Serial.print("ETH: Satar Node IP: ");
+  Serial.print(F("ETH: Satar Node IP: "));
   ether.printIp("ETH: IP: ", ether.myip);
   ether.printIp("ETH: GW: ", ether.gwip);
   ether.printIp("ETH: DNS: ", ether.dnsip);
   //Serial.println(Ethernet.localIP());
   
    if (!ether.dnsLookup(website))
-    Serial.println("ETH: DNS lookup failed.");
+    Serial.println(F("ETH: DNS lookup failed."));
   ether.printIp("ETH: Server IP: ", ether.hisip);
   #endif
-  
-  // digitalWrite(onePin, HIGH); //20kOhm internal pull-up enable 
-  // digitalWrite(twoPin, HIGH); //20kOhm internal pull-up enable
-  // Serial.println("ISR: 1 UP.");
-  // attachInterrupt(0, trigger_one, FALLING); //0 = portpin 2
-  // attachInterrupt(1, trigger_two, FALLING); //1 = portpin 4
+  printRAM();  
   
 //============= BEGIN SD CARD INIT
 #ifdef USE_SD
@@ -198,11 +192,11 @@ digitalWrite(CS_ETH, HIGH); // CS ethernet
 #endif W5100
 digitalWrite(CS_SD, LOW); // CS SD
   if (!SD.begin(CS_SD)) { 
-    Serial.println(" SD: Init failed or no card present.");
+    Serial.println(F(" SD: Init failed or no card present."));
     static boolean cardLog=0;
   }
   else {
-    Serial.println(" SD: Card initialized.");
+    Serial.println(F(" SD: Card initialized."));
     static boolean cardLog=1;
     logPacketToCard("BOOT"); //
     // logPacketToCard("DEBUGDEBUG"); // debug
@@ -213,7 +207,7 @@ digitalWrite(CS_SD, HIGH); // CS SD
 digitalWrite(CS_ETH, LOW); // CS ethernet
 #endif W5100
 #else
-    Serial.println(" SD: Interface disabled.");
+    Serial.println(F(" SD: Interface disabled."));
 #endif
 //============= END SD CARD INIT
 
@@ -224,9 +218,9 @@ pinMode(5, OUTPUT); // LED at pin 5, on when busy with sending and receiving in 
  for (byte i = 0; (i+1)<=amountNodes ; i++) { //check which array index is our nodeID
     if(nodes[i]==nodeID) nodeIDindex=i;
   }
-  Serial.print("nodeIDindex: ");
+  Serial.print(F("nodeIDindex: "));
   Serial.print(nodeIDindex);
-  Serial.print(", nodes[nodeIDindex]: ");
+  Serial.print(F(", nodes[nodeIDindex]: "));
   Serial.println(nodes[nodeIDindex]);
 
   sendStatus(0); // send the initial status packet, 0 = bootup successful

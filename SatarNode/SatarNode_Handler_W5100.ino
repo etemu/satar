@@ -4,11 +4,11 @@ boolean lastConnected = false;
 
 void sendPacket(char* payload){
 
-  Serial.print("ETH: Contact SatarServer.. ");
+  Serial.print(F("ETH: Contact SatarServer.. "));
   
   // if (client.connect(website, 80)) { // use DNS to lookup website. e.g. in WAN
     if (client.connect(website_ip, 80)) { // use IP, do not resolve DNS. e.g. in LAN
-    Serial.println("ACK.");
+    Serial.println(F("ACK."));
     client.print("GET ");
     client.print(website_url);
     client.print("?");
@@ -20,7 +20,7 @@ void sendPacket(char* payload){
     timer_us = micros();
   } 
   else {
-    Serial.println("\nETH:!Connect to SatarServer failed.");
+    Serial.println(F("\nETH:!Connect to SatarServer failed."));
   }
 }
 
@@ -40,14 +40,14 @@ static void eth_reply_w5100()
     lastEthPacket=c;
   
  if (!client.connected() && lastConnected) {
-    Serial.print("ETH: Answer in ");
+    Serial.print(F("ETH: Answer in "));
     Serial.print(timer_us2);
-    Serial.println(" us");
-    Serial.print("ETH: Parsing time: ");
+    Serial.println(F(" us"));
+    Serial.print(F("ETH: Parsing time: "));
     Serial.print(millis()-timer_ms2);
-    Serial.print(" ms, stopping client.. ");
+    Serial.print(F(" ms, stopping client.. "));
     client.stop();
-    Serial.println("ACK\n");
+    Serial.println(F("ACK\n"));
   }
  lastConnected = client.connected();
  }

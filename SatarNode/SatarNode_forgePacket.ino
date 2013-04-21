@@ -1,11 +1,12 @@
-
+char payload[18]= {"567890"}; // this is the whole payload as a char array.
+String payloadString; // this is the whole payload, the package that will
 
 void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned int ID) {    
-
+  printRAM();
   unsigned long timer_micros1=micros();
 
   // constructing the packet which will be transmitted to the remote server:
-  String payloadString; // this is the whole payload, the package that will
+
   // be transmitted in the query. We will build a long string and then 
   // transform it toa char.
   
@@ -16,8 +17,12 @@ void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned 
 
   //payload mask  : 1234567890123456789012345678901234567890123456789012345678901234567890123456789012 (size= 82)
   //payload packet: t=255&T=4294967295&u=255&U=4294967295&v=255&V=4294967295&E=255&I=4294967295&N=255 (size=<82)  
+//  payload+="t=";
+//  payload+=nodes[0];
+
   payloadString+="t=";
   payloadString+=nodes[0];
+  printRAM();
 /*  payloadString+="T="; // append the TS_t string to form the GET request
   payloadString+=nodeStamps[0]+timeStampEvent-nodeStamps[nodeIDindex]; // should work with an overflow as we are unsigned
   payloadString+="u=";
@@ -38,26 +43,26 @@ void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned 
 if (cardLog){
     logPacketToCard(payloadString); // Log the forged payload string to the SD card.
   }
-  char payload[8]; // this is the whole payload as a char array.
-  payloadString.toCharArray(payload, 8); // convert String into char* and fill the buffer 
+
+    payloadString.toCharArray(payload, 18); // convert String into char* and fill the buffer 
 
   #ifdef DEBUG
-//    Serial.print("DEB: Timer  : ");
+//    Serial.print(F("DEB: Timer  : "));
 //    Serial.println(timer_ms);
-    Serial.print("DEB: Payload: ");
+    Serial.print(F("DEB: Payload: "));
     Serial.print(payload);
-    Serial.print(" forged in ");
+    Serial.print(F(" forged in "));
     Serial.print(micros()-timer_micros1);
-    Serial.println(" us.");
+    Serial.println(F(" us."));
   #endif
-
+  printRAM();
 sendPacket(payload); //send out the forged packet to the ethernet chip via SPI
 
   // client.println();  ether.browseUrl(PSTR("/lab1/satar.php?"), payload, website, eth_reply); // ENC
 #ifdef DEBUG
-    Serial.print("DEB: forge&sendPacket done in ");
+    Serial.print(F("DEB: forge&sendPacket done in "));
     Serial.print(micros()-timer_micros1);
-    Serial.println(" us.");
+    Serial.println(F(" us."));
 #endif
 }
 

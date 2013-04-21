@@ -27,7 +27,9 @@
 // 2.20 201304131925 Shure: read out MAC+nodeID from EEPROM
 // 2.21 201304200212 Shure: Fix IP compilation and read out Gateway - 18576 bytes
 // 2.30 201304200319 Shure: merge TimeTravel into SatarNode - 20834 bytes
-// 2.31 201304201645 Shure: 20432 bytes
+// 2.31 201304201645 Shure: code + RAM optimization: 20432 bytes flash usage
+// 2.32 201304211744 Shure: Uno: 20758 Leo: 23584
+// 2.33 201304211752 Shure: Uno: 20872 Leo: 23698 - after switch to F(); strings
 // 
 // ** MOSI - pin 11
 // ** MISO - pin 12

@@ -14,19 +14,19 @@ File dataFile = SD.open("satar.csv", FILE_WRITE);
   if (dataFile) {
     dataFile.println(dataString);
     dataFile.close();
-    Serial.println(" SD: Write successful.");
+    Serial.println(F(" SD: Write successful."));
     // print to the serial port too:
     Serial.println(dataString);
   }  
 
   else {
-    Serial.println(" SD: ! Write failed.");  // if the file isn't accessible, send out an error
+    Serial.println(F(" SD: ! Write failed."));  // if the file isn't accessible, send out an error
   } 
   
 digitalWrite(CS_SD, HIGH); // CS SD
 digitalWrite(CS_ETH, LOW); // CS ethernet  
 #else
-Serial.println(" SD: ! SD disabled.");
+Serial.println(F(" SD: ! SD disabled."));
 #endif
 }
 
