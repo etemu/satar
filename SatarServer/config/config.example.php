@@ -13,7 +13,7 @@ $sql_host		= 'localhost'; 		// the database server, e.g. localhost
 $sql_user 		= 'USER'; 			// username who with read+write access
 $sql_pass 		= 'PASSWORD'; 		// the password
 $sql_db 		= 'satar'; 			// the database which is used
-$sql_table		= 'satar-raw'		// the database table which is used (should exist)
+$sql_table		= 'satar-raw';		// the database table which is used (should exist)
 
 $ruby_APIhost = 'localhost'; 		// Host adress of the Ruby Server.
 $ruby_APIport = '42337'; 			// Port of the Ruby Server.
