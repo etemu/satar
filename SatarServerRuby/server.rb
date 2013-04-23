@@ -14,48 +14,67 @@
 # 	+ database stuff
 # 	+ system status updating
 ################################################################################
-#  ___      __    __                
-# /\_ \   /'__`\ /\ \               
-# \//\ \ /\_\L\ \\ \ \/'\     ___   
-#   \ \ \\/_/_\_<_\ \ , <   /' _ `\ 
-#    \_\ \_/\ \L\ \\ \ \\`\ /\ \/\ \
-#    /\____\ \____/ \ \_\ \_\ \_\ \_\
-#    \/____/\/___/   \/_/\/_/\/_/\/_/
 
-require 'redis'	 # model
 require 'erb'	 # view
 require 'sinatra'# controller
 require 'yaml'
-# load the config
-config = YAML.load_file("./_config/config.yml")
-################################################################################
-# setup
+require 'rubygems'
+require 'dm-core'
+require 'dm-redis-adapter'
+require 'dm-migrations'
 
-### redis
-if config['redis']['mode'] == 0
-	$redis = Redis.new(:path => config["redis"]["socket"])
-else
-	$redis = Redis.new(:host => config["redis"]["host"],
-					   :port => config["redis"]["port"])
+### load the config
+config = YAML.load_file("./_config/config.yml")
+
+### DataMapper models
+DataMapper.setup(:default, {:adapter  => "redis"})
+
+class Node
+	include DataMapper::Resource
+
+	property :id,		Integer, :required => true, :key => true
+	property :delta,	Integer
+	property :status,	Integer
 end
-$redis.select(config["redis"]["number"])
-$redis.flushdb
+
+class Rider
+	include DataMapper::Resource
+
+	property :id,			Integer, :required => true, :key => true
+	property :lastTime,		Integer
+	has n, :results
+end
+
+class Result
+	include DataMapper::Resource
+
+	property :id,		Integer, :required => true, :key => true
+	property :time,		Integer
+	belongs_to :Rider,  		:key => true
+end
+
+class Event
+	include DataMapper::Resource
+
+	property :id,		Serial, :key => true
+	property :time,		Integer
+end
+
+DataMapper.finalize
+DataMapper.auto_upgrade!
 
 ### sinatra
 set :port, config["server"]["port"]
 set :bind, config["server"]["bind"]
 set :server, 'thin'
-################################################################################
-# variables for streaming
-# 
+
+### variables for streaming
 $connectionsDebug = [] # Debuglog
 $connectionsEvent = [] # Trigger events
 $connectionsSystem = [] # System status
 $connectionsResults = [] # pairs of trigger events
 
-################################################################################
-# routes
-
+### routes
 ### main views
 get '/' do
 	erb :index
@@ -67,7 +86,6 @@ get '/results' do
 	erb :results
 end
 get '/admin' do
-	protected!
 	erb :admin
 end
 
@@ -75,63 +93,52 @@ end
 post '/api/event' do
 	timestamp = params['TSN'].to_i
 	eventId = params['EVENT'].to_i
-	nodeId = params['NODE']
+	nodeId = params['NODE'].to_i
 	statusId = params['ID'].to_i
-	$connectionsDebug.each { |out| out <<
-		"data: #{ts}: N#{nodeId}, E#{eventId}\n\n"}
+	debug "(#{nodeId}) E#{eventId}\n\n"
 	case eventId
 		### status/bootup
 		when 0
-			$connectionsDebug.each { |out| out <<
-				"data: #{ts}: (#{nodeId}) booted up\n\n"}
-			addNode(nodeId)
-
-			# reset the offset
-			offsetNew = (Time.now.to_f * 1000).floor - timestamp
-			$redis.hset("node:#{nodeId}",'offset',offsetNew)
-
+			debug "(#{nodeId}) booted up"
+			node = Node.new(:id => nodeId)
+			debug "#{node.id}"
+			node.delta = (Time.now.to_f * 1000).floor - timestamp
+			node.save
 		### status/keepalive
 		when 1
-			addNode(nodeId)
+			node = Node.get(nodeId)
 			offsetNew = (Time.now.to_f * 1000).floor - timestamp
-			offsetOld = $redis.hget("node:#{nodeId}",'offset').to_i
 			# fliter out peaks
-			if offsetOld > 0
-				if (offsetOld-offsetNew).abs > 250
-					offsetNew = offsetOld
+			if node.delta > 0
+				if (node.delta-offsetNew).abs > 250
+					offsetNew = node.delta
 				else
-					offsetNew = (offsetNew+offsetOld)/2
+					offsetNew = (offsetNew+node.delta)/2
 				end
 			end
-			$connectionsDebug.each { |out| out <<
-				"data: #{ts}: (#{nodeId}) has an offset of #{offsetNew}\n\n"}
-			$redis.hmset("node:#{nodeId}",'status',statusId,'offset',offsetNew)
-			if $redis.hget("node:#{nodeId}",'status').to_i != statusId
-				$connectionsDebug.each { |out| out <<
-					"data: #{ts}: (#{nodeId}) changed status to #{statusId.to_s(2)}\n\n"}
-			end
+			debug "(#{nodeId}) has an offset of #{offsetNew}"
+			node.status = statusId
+			node.save
+
 		### eventId >= 100: hardware event!
 		when 100..108
 		### log it
-			$connectionsDebug.each { |out| out <<
-				"data: #{ts}: N#{nodeId} triggered input #{eventId-100}\n\n"}
-			offset = $redis.hget("node:#{nodeId}",'offset').to_i
-			if offset!=nil
-				relativeTime = timestamp+offset
-				$redis.incr("event.id")
-				eventKey = $redis.get("event.id")
-				$redis.sadd("events:#{nodeId}", eventKey)
-				$redis.set("event:#{eventKey}",relativeTime)
-		
+			node = Node.get(nodeId)
+			debug "(#{nodeId}) triggered input #{eventId-100}"
+			if node.delta!=nil
+				relativeTime = timestamp+node.delta
+				event = Event.new 
+				event.time = relativeTime
+				event.save
 				### stream it so that a riderId can be connected
 				timestring = Time.at(relativeTime.to_f/1000).strftime("%H:%M:%S,%L")
 				$connectionsEvent.each { |out| out <<
-					"data: #{nodeId};#{timestring};#{eventKey}\n\n"}
+					"data: #{nodeId};#{timestring};#{event.id}\n\n"}
 			end
+			node.save
 		### other stuff
 		else
-			$connectionsDebug.each { |out| out <<
-				"data: unknown eventID\n\n"}
+			debug "unknown eventID"
 	end
 	updateSystemStatus
 	204 # response without entity body
@@ -141,23 +148,26 @@ end
 post '/api/event/:nodeID/:eventKey' do
 	riderId = params['riderId']
 	eventKey = params[:eventKey]
-	$connectionsDebug.each { |out| out <<
-		"data: #{ts}: connected event #{eventKey}/#{params[:nodeID]} with rider #{riderId}\n\n"}
-	eventKey2 = $redis.get("time:#{riderId}")
-	if eventKey2 == nil
-		$redis.set("time:#{riderId}",eventKey)
-		$connectionsDebug.each { |out| out <<
-			"data: no matching pair right now\n\n"}
+	event = Event.get(eventKey)
+	rider = Rider.get(riderId)
+	debug "#{rider.lastTime}"
+	debug "connected event #{eventKey}/#{params[:nodeID]} with rider #{riderId}"
+	if rider.lastTime.nil?
+		debug "was nil"
+		rider.lastTime = event.time
+		debug "#{rider.lastTime}"
+		debug "#{rider.save}"
+		debug "#{rider.lastTime}"
 	else
-		time1 = $redis.get("event:#{eventKey2}")
-		time2 = $redis.get("event:#{eventKey}")
-		diff = (time2.to_i - time1.to_i).abs
-		$connectionsDebug.each { |out| out <<
-			"data: got a time of #{diff}ms for rider #{riderId}\n\n"}
+		diff = (lastTime - event.time).abs
+		result = Result.new(:time => diff)
+		rider.results << result
+		rider.lastTime.destroy
+		debug "data: got a time of #{diff}ms for rider #{riderId}"
 		$connectionsResults.each { |out| out <<
 			"data: #{riderId};#{diff}\n\n"}
-		$redis.del("time:#{riderId}")
 	end
+	rider.save
 	204
 end
 
@@ -187,54 +197,25 @@ get '/api/stream/results', :provides => 'text/event-stream' do
 	end
 end
 
-################################################################################
-# helpers
+### helpers
 
 helpers do
-	### authentication
-	def protected!
-		unless authorized?
-			response['WWW-Authenticate'] = %(Basic realm="Restricted Area")
-			throw(:halt, [401, "Not authorized\n"])
-		end
-	end
-	def authorized?
-		@auth ||=	Rack::Auth::Basic::Request.new(request.env)
-		@auth.provided? && @auth.basic? && @auth.credentials == ['admin', 'admin']
-	end
-
 	### system status
 	def updateSystemStatus
 		base = "<h2>Nodes</h2><ul>"
-		for node in allNodes do
-			base << "<li>#{node['id'].to_s.rjust(3,"0")}:"
-			base << "st #{node['status'].to_i.to_s(2).rjust(3,"0")} "
-			base << "of #{node['offset']}</li>"
+		for node in Node.all do
+			base << "<li>#{node.id.to_s.rjust(3,"0")}:"
+			base << "st #{node.status.to_i.to_s(2).rjust(3,"0")} "
+			base << "of #{node.delta}</li>"
 		end
 	 	base += "</ul>"
 		$connectionsSystem.each { |out| out << "data: #{base}\n\n"}
 	end
-	def allNodes
-	 	node_ids = $redis.smembers("nodes")
-	 	nodes = $redis.pipelined {
-	 		node_ids.each{|id|
-	 			$redis.hgetall("node:#{id}")
-	 		}
-	 	}
-	 	return nodes
+	def debug(string)
+		$connectionsDebug.each { |out| out <<
+		"data: #{ts}: #{string}\n\n"}
 	end
 	def ts
 		Time.now.strftime("%H:%M:%S,%L")
-	end
-
-	### db helpers
-	def addNode(nodeId)
-		if $redis.sadd('nodes', nodeId) == true
-			# this is obviously completely unnecessary and stupid
-			# but makes it easier so iterate trough all nodes later
-			$redis.hset("node:#{nodeId}",'id',nodeId)
-			$connectionsDebug.each { |out| out <<
-				"data: #{ts}: Added new node (#{nodeId})\n\n"}
-		end
 	end
 end
