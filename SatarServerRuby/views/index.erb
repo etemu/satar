@@ -24,10 +24,11 @@
 		logToTable(e.data);
 	};
 	ss.onmessage = function(e) {
-		if(e.data == "node")
+		// this just tells our script that there is something new
+		// if it is node stuff, we pull the content from the "raw"-API
+		if(e.data.split(';')[0] == "status")
 		{
 			$('div#status').load("/raw/nodes");		
 		}
 	};
-
 </script>

@@ -31,6 +31,15 @@ class Node
 	property :id,		Integer, :required => true, :key => true
 	property :delta,	Integer
 	property :status,	Integer
+	has n, :events
+end
+
+class Event
+	include DataMapper::Resource
+
+	property :id,		Serial, :key => true
+	property :time,		Integer
+	belongs_to :Node#,  		:key => true
 end
 
 class Rider
@@ -47,13 +56,6 @@ class Result
 	property :id,		Integer, :required => true, :key => true
 	property :time,		Integer
 	belongs_to :Rider,  		:key => true
-end
-
-class Event
-	include DataMapper::Resource
-
-	property :id,		Serial, :key => true
-	property :time,		Integer
 end
 
 DataMapper.finalize
@@ -89,6 +91,11 @@ end
 get '/raw/nodes' do
 	@nodes = Node.all
 	erb :'raw/nodes', :layout => false
+end
+
+get '/raw/result' do
+	@results = Result.all
+	erb :'raw/result', :layout => false
 end
 
 ### API
@@ -128,7 +135,9 @@ post '/api/event' do
 				relativeTime = timestamp+node.delta
 				event = Event.create 
 				event.time = relativeTime
+				node.events << event
 				### stream it so that a riderId can be connected
+				streamDebug "#{nodeId};#{ts};#{event.id}"
 				streamEvent "#{nodeId};#{ts};#{event.id}"
 				event.save
 			end
@@ -137,7 +146,7 @@ post '/api/event' do
 		else
 			streamDebug "unknown eventID"
 	end
-	streamSystem "node"
+	streamSystem "status"
 	204 # response without entity body
 end
 	
