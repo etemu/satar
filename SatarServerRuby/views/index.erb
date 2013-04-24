@@ -19,10 +19,15 @@
 	// reading
 	var es = new EventSource('/api/stream/debug');
 	var ss = new EventSource('/api/stream/system');
+	$('div#status').load("/raw/nodes");
 	es.onmessage = function(e) {
 		logToTable(e.data);
 	};
 	ss.onmessage = function(e) {
-		$('div#status').html(e.data);
+		if(e.data == "node")
+		{
+			$('div#status').load("/raw/nodes");		
+		}
 	};
+
 </script>

@@ -85,6 +85,12 @@ get '/admin' do
 	erb :admin
 end
 
+### raw views
+get '/raw/nodes' do
+	@nodes = Node.all
+	erb :'raw/nodes', :layout => false
+end
+
 ### API
 post '/api/event' do
 	timestamp = params['TSN'].to_i
@@ -131,7 +137,7 @@ post '/api/event' do
 		else
 			streamDebug "unknown eventID"
 	end
-	updateSystemStatus
+	streamSystem "node"
 	204 # response without entity body
 end
 	
@@ -190,16 +196,6 @@ end
 ### helpers
 helpers do
 	### system status
-	def updateSystemStatus
-		base = "<h2>Nodes</h2><ul>"
-		for node in Node.all do
-			base << "<li>#{node.id.to_s.rjust(3,"0")}:"
-			base << "st #{node.status.to_i.to_s(2).rjust(3,"0")} "
-			base << "of #{node.delta}</li>"
-		end
-	 	base << "</ul>"
-		$connectionsSystem.each { |out| out << "data: #{base}\n\n"}
-	end
 	def streamDebug(string)
 		$connectionsDebug.each { |out| out <<
 		"data: #{ts}: #{string}\n\n"}
@@ -210,6 +206,10 @@ helpers do
 	end
 	def streamEvent(string)		
 		$connectionsEvent.each { |out| out <<
+		"data: #{string}\n\n"}
+	end
+	def streamSystem(string)		
+		$connectionsSystem.each { |out| out <<
 		"data: #{string}\n\n"}
 	end
 	def ts
