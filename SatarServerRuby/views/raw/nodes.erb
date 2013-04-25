@@ -4,7 +4,20 @@
     	node <%= @node.id %>
    		<ul>
     		<li>status: <%= @node.status.to_i.to_s(2) %></li>
-    		<li>offset: <%= @node.delta %></li>
+    		<li>offset: <%= @node.delta %>, <%= @node.var %></li>
+    		<li>
+    			deltas:
+    			<ul>
+    				<% for @node2 in @nodes %>
+    					<% if @node.id != @node2.id %>
+							<li>
+								<%= @node.id %>-<%= @node2.id %>:
+								<%= @node.delta-@node2.delta %> 
+							</li>
+						<% end %>
+    				<% end %>
+    			</ul>
+    		</li>
     	</ul>
     </li>
   <% end %>

@@ -16,19 +16,20 @@
 </div>
 
 <script>
-	// reading
-	var es = new EventSource('/api/stream/debug');
-	var ss = new EventSource('/api/stream/system');
-	$('div#status').load("/raw/nodes");
-	es.onmessage = function(e) {
-		logToTable(e.data);
-	};
-	ss.onmessage = function(e) {
-		// this just tells our script that there is something new
-		// if it is node stuff, we pull the content from the "raw"-API
-		if(e.data.split(';')[0] == "status")
-		{
-			$('div#status').load("/raw/nodes");		
-		}
-	};
+	$(document).ready(function() {
+		var es = new EventSource('/api/stream/debug');
+		var ss = new EventSource('/api/stream/system');
+		$('div#status').load("/raw/nodes");
+		es.onmessage = function(e) {
+			logToTable(e.data);
+		};
+		ss.onmessage = function(e) {
+			// this just tells our script that there is something new
+			// if it is node stuff, we pull the content from the "raw"-API
+			if(e.data.split(';')[0] == "status")
+			{
+				$('div#status').load("/raw/nodes");		
+			}
+		};
+	});
 </script>

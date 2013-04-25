@@ -18,29 +18,27 @@
 	</div>
 </div>
 
-
 <script>
-	// load value for the node field
 	$(document).ready(function() {
 		var id = sessionStorage.getItem('id');
 		$("#node").val(id);
+		var ss = new EventSource('/api/stream/system');
+		$('div#events').load("/raw/events/"+id);
+		ss.onmessage = function(e) {
+			// this just tells our script that there is something new
+			// if it is node stuff, we pull the content from the "raw"-API
+			data = e.data.split(';');
+			console.log(data);
+			var id = sessionStorage.getItem('id');
+			if(data[0] == "event" && data[1] == 2)
+			{
+				$('div#events').load("/raw/events/"+id);
+			}
+		};
+		$("#node").bind('keyup mouseup', function() {
+			var value = $("#node").val();
+			sessionStorage.setItem('id',value);
+			$('div#events').load("/raw/events/"+value);
+		});
 	});
-	// streaming
-	var es = new EventSource('/api/stream/events');
-	es.onmessage = function(e) {
-		var data = e.data.split(';');
-		var nodeId = data[0];
-		var value = $("#node").val();
-		sessionStorage.setItem('id',value);
-		var eventId = data[2];
-		if (value == nodeId)
-		{
-			var form = '<form action="/api/event/'+nodeId+'/'+eventId+'" method="post"> \
-							<input type="number" name="riderId" id="riderId" value="1"/> \
-							<input class="submit" type="submit" onclick="$(\'#ev'+eventId+'\').css(\'background\',\'gray\');" value="Submit" /> \
-						</form>';
-			var wrapper = '<div class="row" id="ev'+eventId+'">';
-			$('#events').prepend(wrapper+data[1]+'  riderID:'+form+'</div>');
-		}
-	};
 </script>

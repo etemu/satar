@@ -1,0 +1,13 @@
+<% for @event in @node.events.pop(20).reverse %>
+	<div class="row" id="ev<%= @event.id %>">
+		<%= Time.at(@event.time.to_f/1000).strftime("%H:%M:%S,%L") %>
+		<% if ((Time.now.to_i*1000) - @event.time) > 10000 %>
+			Timed out!
+		<% end %>
+		<form action=/api/event/<%= @node.id %>/<%= @event.id %> method="post">
+			<input type="number" name="riderId" id="riderId" value="1"/>
+			<input class="submit" type="submit" onclick="this.value = 'done'" value="Submit" /> 
+		</form>
+	</div>
+<% end %>
+

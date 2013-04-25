@@ -2,6 +2,16 @@
 # coding: utf-8
 ################################################################################
 # SatarServer Ruby by Leon Rische
+# 0.2.0
+# 	+ changed the way events are streamed
+# 		+ the node list is now loaded when opening the page
+# 		+ the event list for each node is safed and reloaded dynamically
+# 		+ improvend the stream/node selection function (reload on change)
+# 		+ using one stream for all change events
+# 		+ checked in events are deleted now
+# 	+ moved all html creation to erb files
+# 	+ displaying a nodes var in the interface
+# 	+ calculating deltas between nodes
 # 0.1.1
 # 	+ using data mapper now
 # 	+ one rider can have many results
@@ -23,13 +33,16 @@ require 'dm-migrations'
 config = YAML.load_file("./_config/config.yml")
 
 ### DataMapper models
-DataMapper.setup(:default, {:adapter  => "redis", :host => '127.0.0.1', :port => '6379'})
+DataMapper.setup(:default, {:adapter  => "redis", 
+							:host => '127.0.0.1', 
+							:port => '6379'})
 
 class Node
 	include DataMapper::Resource
 
 	property :id,		Integer, :required => true, :key => true
 	property :delta,	Integer
+	property :var,		Integer	
 	property :status,	Integer
 	has n, :events
 end
@@ -39,14 +52,18 @@ class Event
 
 	property :id,		Serial, :key => true
 	property :time,		Integer
-	belongs_to :Node#,  		:key => true
+	belongs_to :node
 end
 
 class Rider
 	include DataMapper::Resource
 
-	property :id,		Integer, :required => true, :key => true
-	property :last,		Integer
+	property :id,			Integer, :required => true, :key => true
+	property :last,			Integer
+	# not yet implemented
+	# property :first_name,	String
+	# property :last_name,	String
+	# property :team,		String
 	has n, :results
 end
 
@@ -55,11 +72,16 @@ class Result
 
 	property :id,		Integer, :required => true, :key => true
 	property :time,		Integer
-	belongs_to :Rider,  		:key => true
+	belongs_to :rider,  		:key => true
 end
 
 DataMapper.finalize
-DataMapper.auto_migrate!
+DataMapper.auto_upgrade!
+
+Rider.all.destroy
+Node.all.destroy
+Event.all.destroy
+Result.all.destroy
 
 ### sinatra
 set :port, config["server"]["port"]
@@ -68,7 +90,6 @@ set :server, 'thin'
 
 ### variables for streaming
 $connectionsDebug = [] # Debuglog
-$connectionsEvent = [] # Trigger events
 $connectionsSystem = [] # System status
 $connectionsResults = [] # pairs of trigger events
 
@@ -95,7 +116,19 @@ end
 
 get '/raw/result' do
 	@results = Result.all
+	streamDebug "#{@results.count}"
 	erb :'raw/result', :layout => false
+end
+
+get '/raw/events/:nodeID' do
+	id = params[:nodeID]
+	# just get the last 10 events
+	@node = Node.get(id)
+	if @node.nil?
+		"Unknown node"
+	else
+		erb :'raw/event', :layout => false
+	end
 end
 
 ### API
@@ -109,23 +142,24 @@ post '/api/event' do
 		when 0
 			streamDebug "(#{nodeId}) booted up"
 			node = Node.new(:id => nodeId)
-			node.delta = (Time.now.to_f * 1000).floor - timestamp
+			node.delta = millis - timestamp
 			node.save
+			streamSystem "status"
 		### status/keepalive
 		when 1
 			node = Node.get(nodeId)
-			offsetNew = (Time.now.to_f * 1000).floor - timestamp
+			offsetNew = millis - timestamp
+			node.var = offsetNew - node.delta
 			# fliter out peaks
-			if node.delta > 0
-				if (node.delta-offsetNew).abs > 250
-					offsetNew = node.delta
-				else
-					offsetNew = (offsetNew+node.delta)/2
+			if node.delta.abs > 0
+				if (node.delta-offsetNew).abs < 5
+					node.delta = (offsetNew+node.delta)/2
 				end
 			end
-			streamDebug "(#{nodeId}) has an offset of #{offsetNew}"
+			streamDebug "(#{nodeId}) has an offset of #{node.delta}"
 			node.status = statusId
 			node.save
+			streamSystem "status"
 		### eventId >= 100: hardware event!
 		when 100..108
 		### log it
@@ -133,46 +167,53 @@ post '/api/event' do
 			streamDebug "(#{nodeId}) triggered input #{eventId-100}"
 			if node.delta!=nil
 				relativeTime = timestamp+node.delta
-				event = Event.create 
-				event.time = relativeTime
-				node.events << event
+				event = Event.create(:time => relativeTime)
 				### stream it so that a riderId can be connected
-				streamDebug "#{nodeId};#{ts};#{event.id}"
-				streamEvent "#{nodeId};#{ts};#{event.id}"
-				event.save
+				node.events << event
+				node.save # prevent fuckup when accessing the last event
+				streamSystem "hello?"
+				streamSystem "event;#{node.id}"
 			end
 			node.save
 		### other stuff
 		else
 			streamDebug "unknown eventID"
 	end
-	streamSystem "status"
 	204 # response without entity body
 end
 	
 ### connect event /w rider
-post '/api/event/:nodeID/:eventKey' do
+post '/api/event/:nodeId/:eventKey' do
 	riderId = params['riderId'].to_i
 	eventKey = params[:eventKey].to_i
+	nodeId = params[:nodeId].to_i
 	event = Event.get(eventKey)
 	rider = Rider.get(riderId)
-	streamDebug "connected #{eventKey}/#{params[:nodeID]} with rider #{riderId}"
+	if rider.nil?
+		rider = Rider.new(:id => riderId)
+	end
+	streamDebug "connected #{eventKey}/#{nodeId} with rider #{riderId}"
 	if rider.last.nil?
 		rider.last = event.time
 	else
 		diff = (rider.last - event.time).abs
-		result = Result.new(:time => diff)
+		result = Result.create(:time => diff)
 		rider.results << result
 		rider.last = nil
 		streamDebug "got a time of #{diff}ms for rider #{riderId}"
-		streamResult "#{riderId};#{diff}\n\n"
+		streamResult "#{riderId};#{diff}"
 	end
 	rider.save
+	event.destroy
 	204
 end
 
 post '/admin/reset' do
-	DataMapper.auto_migrate!
+	# the redis adapter has no flush function so we gotta destroy them all
+	Rider.all.destroy
+	Node.all.destroy
+	Event.all.destroy
+	Result.all.destroy
 	erb :admin
 end
 
@@ -213,15 +254,14 @@ helpers do
 		$connectionsResults.each { |out| out <<
 		"data: #{ts}: #{string}\n\n"}
 	end
-	def streamEvent(string)		
-		$connectionsEvent.each { |out| out <<
-		"data: #{string}\n\n"}
-	end
 	def streamSystem(string)		
 		$connectionsSystem.each { |out| out <<
 		"data: #{string}\n\n"}
 	end
 	def ts
 		Time.now.strftime("%H:%M:%S,%L")
+	end
+	def millis
+		(Time.now.to_f * 1000).floor
 	end
 end
