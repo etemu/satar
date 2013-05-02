@@ -31,7 +31,7 @@ unsigned int localPort = 8888;      // local UDP port to listen on
 unsigned long micros1 = 0;
 unsigned long sentTime = 0;
 byte nodes[]={
-  7,9}; //TODO: read node network topology setup from EEPROM
+  5,6}; //TODO: read node network topology setup from EEPROM
 byte currentNode=0;
 byte nodeIDindex=0;
 const byte amountNodes=2;
@@ -64,7 +64,7 @@ const short CS_ETH = 10; // ** CS - pin 10 for ethernet
 
 static byte mac[] = { 0x00, 0x00, 0x00, 0x00, 0x00, 0x00 }; // ethernet interface mac address, not used if USE_EEPROM is set
 static char website[] = "etemu.com"; // remote server, TLD/vHost
-IPAddress website_ip(192,168,8,113); // the IP from the website - optional, used for debugging purposes
+IPAddress website_ip(192,168,8,2); // the IP from the website - optional, used for debugging purposes
 
 static char website_url[] = "/satar/SatarServer/satar.php"; // URL pointing to SatarServer's satar.php, leading slash, no trailing slash.
 // vetu_anna: http://192.168.8.113/satar/SatarServer/satar.php
@@ -111,9 +111,11 @@ const unsigned int triggerIntervalTwo=1000;
 const int onePin = 2;	// the number of the input pin, ISR only at portpins 2 and 3 (AtMega328)
 const int twoPin = 3; 
 
-unsigned long timer_ms = 0;
+unsigned long timer_heartbeat = 0; // timer for keepalive packets to the server
+unsigned long timer_sync = 0; // timer for calling TimeTravel()
+unsigned long timer_ms = 0; // misc
 unsigned long timer_us = 0;
-static boolean cardLog = 0;
+static boolean cardLog = 0; // SD card logging enabled or disabled
 
 // Timer t; // Timer lib for non-blocking periodic calls
 
@@ -234,23 +236,24 @@ void loop () {
   // checkTriggerTwo();
   //  timer_us=micros();
    
-  if (millis() > timer_ms + KEEPALIVE_RATE) {
+  if (millis() > timer_heartbeat + KEEPALIVE_RATE) {
       sendStatus(1); //send a heartbeat packet to the server and signal our health, also used for time sync
-      timer_ms = millis();
+      timer_heartbeat = millis();
     }
   #ifdef ETHERCARD
     ether.packetLoop(ether.packetReceive()); // read out the ethernet buffer frequently.
   #endif
   
-  #ifdef W5100
-  if (millis() > timer_ms + SYNC_RATE) {
+  
+  if (millis() > timer_sync + SYNC_RATE) {
     timeTravel(); // send out a TimeTravel packet to a node from the node list array 'nodes[]'.
+    timer_sync = millis();
   }
   recvUdp();  // call the UDP handler - if there's data available, read a packet and act accordingly.
   digitalWrite(5, HIGH); //LED at pin 3 as a status indicator, high when busy.
   eth_reply_w5100(); // read out the ethernet buffer frequently.
-  #endif
- 
+
+
   digitalWrite(5, LOW); //LED at pin 3 as status-indicator
 }
 

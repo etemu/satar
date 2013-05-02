@@ -48,7 +48,6 @@ void timeTravel(){
   if (nodeIDindex>=1) currentNode=0; //TODO: implement for more than two active nodes.
   if (nodeIDindex==0) currentNode=1;
   sendT(nodes[currentNode]); 
-  timer_ms = millis();
 }
 
 void recvUdp(){
