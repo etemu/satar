@@ -13,7 +13,7 @@
 
 #define DEBUG 1 // debug mode with verbose output over serial at 115200 bps
 // v2.3: 20834 vs 19786 debug mode vs non-debug mode
-byte nodeID = 11; // Unique Node Identifier (2...254) - also the last byte of the IPv4 adress, not used if USE_EEPROM is set
+byte nodeID = 42; // Unique Node Identifier (2...254) - also the last byte of the IPv4 adress, not used if USE_EEPROM is set
 #define USE_EEPROM // read nodeID and network settings from EEPROM at bootup, overwrites nodeID and MAC.
 #define REQUEST_RATE 30000L // request rate of webpage query in ms, for debugging
 #define KEEPALIVE_RATE 32768L // request rate of sendKeepalive in ms
@@ -106,8 +106,8 @@ volatile unsigned long oneTriggeredMicros=0;
 volatile unsigned long twoTriggeredMicros=0;
 byte typeEvent=2;
 
-const unsigned int triggerIntervalOne=1000; //minimum time between two occuring start trigger events in ms
-const unsigned int triggerIntervalTwo=1000; 
+const unsigned int triggerIntervalOne=5000; //minimum time between two occuring start trigger events in ms
+const unsigned int triggerIntervalTwo=5000; 
 const int onePin = 2;	// the number of the input pin, ISR only at portpins 2 and 3 (AtMega328)
 const int twoPin = 3; 
 
@@ -244,12 +244,13 @@ void loop () {
     ether.packetLoop(ether.packetReceive()); // read out the ethernet buffer frequently.
   #endif
   
-  
+  /* // RC2 only
   if (millis() > timer_sync + SYNC_RATE) {
     timeTravel(); // send out a TimeTravel packet to a node from the node list array 'nodes[]'.
     timer_sync = millis();
   }
   recvUdp();  // call the UDP handler - if there's data available, read a packet and act accordingly.
+*/
   digitalWrite(5, HIGH); //LED at pin 3 as a status indicator, high when busy.
   eth_reply_w5100(); // read out the ethernet buffer frequently.
 

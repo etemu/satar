@@ -11,20 +11,19 @@ void forgePacket(unsigned long timeStampEvent, unsigned int typeEvent, unsigned 
   //payload packet: t=255&T=4294967295&u=255&U=4294967295&v=255&V=4294967295&E=255&I=4294967295&N=255 (size=<82)  
   payloadString+="N="; 
   payloadString+=nodeID; 
-  payloadString+="&t=";
-  payloadString+=nodes[0];
+
+
   payloadString+="&T="; // append the TS_t string to form the GET request
-  payloadString+=nodeStamps[0]+timeStampEvent-nodeStamps[nodeIDindex]; // should work with an overflow as we are unsigned
-  payloadString+="&u=";
-  payloadString+=nodes[1];
-  payloadString+="&U="; // append the TS_u string to form the GET request
-  payloadString+=nodeStamps[1]+timeStampEvent-nodeStamps[nodeIDindex];
-//if (amountNodes==3){
-//  payloadString+="&v=";
-//  payloadString+=nodes[2];
-//  payloadString+="&V="; // append the TS_v string to form the GET request
-//  payloadString+=nodeStamps[2]+timeStampEvent-nodeStamps[nodeIDindex];
-//}
+  payloadString+=timeStampEvent; // should work with an overflow as we are unsigned
+
+
+
+
+
+
+
+
+
   payloadString+="&E="; 
   payloadString+=typeEvent; // 0=bootup 1=heartbeat, 101=int_trigger(0), 102=int_trigger(1)
   payloadString+="&I="; 

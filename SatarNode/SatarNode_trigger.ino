@@ -1,13 +1,13 @@
 void trigger_one(){ 
   detachInterrupt(0);          // disable the interrupt, so it won't bother us while we process the event
   oneTriggered=1;              //set flag to 1 when interrupt is triggered
-  oneTriggeredMicros=micros(); // this is our time which will be used as the event time
+  oneTriggeredMicros=millis(); // this is our time which will be used as the event time
 } 
 
 void trigger_two(){ 
   detachInterrupt(1);          // disable the interrupt, so it won't bother us while we process the event
   twoTriggered=1;      //set flag to 1 when interrupt is triggered
-  twoTriggeredMicros=micros(); // this is our time which will be used as the event time
+  twoTriggeredMicros=millis(); // this is our time which will be used as the event time
 } 
 
 void checkTriggerOne(){
