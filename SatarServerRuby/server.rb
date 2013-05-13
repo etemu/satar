@@ -89,9 +89,9 @@ set :bind, config['server']['bind']
 set :server, 'thin'
 
 ### variables for streaming
-$connectionsDebug = [] # Debuglog
-$connectionsSystem = [] # System status
-$connectionsResults = [] # pairs of trigger events
+$connections_debug = [] # Debuglog
+$connections_system = [] # System status
+$connections_results = [] # pairs of trigger events
 
 ### routes
 ### main views
@@ -116,14 +116,14 @@ end
 
 get '/raw/result' do
 	@results = Result.all
-	streamDebug "#{@results.count}"
+	stream_debug "#{@results.count}"
 	erb :'raw/result', :layout => false
 end
 
 get '/raw/events/:nodeID' do
-	id = params[:nodeID]
+	node_ID = params[:nodeID]
 	# just get the last 10 events
-	@node = Node.get(id)
+	@node = Node.get(node_ID)
 	if @node.nil?
 		'Unknown node'
 	else
@@ -134,62 +134,62 @@ end
 ### API
 post '/api/event' do
 	timestamp = params['TSN'].to_i
-	eventId = params['EVENT'].to_i
-	nodeId = params['NODE'].to_i
-	statusId = params['ID'].to_i
-	case eventId
+	event_ID = params['EVENT'].to_i
+	node_ID = params['NODE'].to_i
+	status_ID = params['ID'].to_i
+	case event_ID
 		### status/bootup
 		when 0
-			streamDebug "(#{nodeId}) booted up"
-			node = Node.new(:id => nodeId)
+			stream_debug "(#{node_ID}) booted up"
+			node = Node.new(:id => node_ID)
 			node.delta = millis - timestamp
 			node.save
-			streamSystem 'status'
+			stream_system 'status'
 		### status/keepalive
 		when 1
-			node = Node.get(nodeId)
+			node = Node.get(node_ID)
 			offsetNew = millis - timestamp
 			node.var = offsetNew - node.delta
 			# fliter out peaks
 			if node.delta.abs > 0 && (node.delta-offsetNew).abs < 5
 				node.delta = (offsetNew+node.delta)/2
 			end
-			streamDebug "(#{nodeId}) has an offset of #{node.delta}"
-			node.status = statusId
+			stream_debug "(#{node_ID}) has an offset of #{node.delta}"
+			node.status = status_ID
 			node.save
-			streamSystem 'status'
-		### eventId >= 100: hardware event!
+			stream_system 'status'
+		### event_ID >= 100: hardware event!
 		when 100..108
 		### log it
-			node = Node.get(nodeId)
-			streamDebug "(#{nodeId}) triggered input #{eventId-100}"
+			node = Node.get(node_ID)
+			stream_debug "(#{node_ID}) triggered input #{event_ID-100}"
 			if node.delta!=nil
 				relativeTime = timestamp+node.delta
 				event = Event.create(:time => relativeTime)
 				### stream it so that a riderId can be connected
 				node.events << event
 				node.save # prevent fuckup when accessing the last event
-				streamSystem "event;#{node.id}"
+				stream_system "event;#{node.id}"
 			end
 			node.save
 		### other stuff
 		else
-			streamDebug 'unknown eventID'
+			stream_debug 'unknown eventID'
 	end
 	204 # response without entity body
 end
 	
 ### connect event /w rider
-post '/api/event/:nodeId/:eventKey' do
-	riderId = params['riderId'].to_i
-	eventKey = params[:eventKey].to_i
-	nodeId = params[:nodeId].to_i
-	event = Event.get(eventKey)
-	rider = Rider.get(riderId)
+post '/api/event/:node_ID/:eventKey' do
+	rider_ID = params['riderId'].to_i
+	event_key = params[:eventKey].to_i
+	node_ID = params[:nodeId].to_i
+	event = Event.get(event_key)
+	rider = Rider.get(rider_ID)
 	if rider.nil?
-		rider = Rider.new(:id => riderId)
+		rider = Rider.new(:id => rider_ID)
 	end
-	streamDebug "connected #{eventKey}/#{nodeId} with rider #{riderId}"
+	stream_debug "connected #{event_key}/#{node_ID} with rider #{rider_ID}"
 	if rider.last.nil?
 		rider.last = event.time
 	else
@@ -197,8 +197,8 @@ post '/api/event/:nodeId/:eventKey' do
 		result = Result.create(:time => diff)
 		rider.results << result
 		rider.last = nil
-		streamDebug "got a time of #{diff}ms for rider #{riderId}"
-		streamResult "#{riderId};#{diff}"
+		stream_debug "got a time of #{diff}ms for rider #{rider_ID}"
+		stream_result "#{rider_ID};#{diff}"
 	end
 	rider.save
 	event.destroy
@@ -217,14 +217,14 @@ end
 ### streaming
 get '/api/stream/debug', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
-		$connectionsDebug << out
-		out.callback { $connectionsDebug.delete(out) }
+		$connections_debug << out
+		out.callback { $connections_debug.delete(out) }
 	end
 end
 get '/api/stream/system', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
-		$connectionsSystem << out
-		out.callback { $connectionsSystem.delete(out) }
+		$connections_system << out
+		out.callback { $connections_system.delete(out) }
 	end
 end
 get '/api/stream/events', :provides => 'text/event-stream' do
@@ -235,24 +235,24 @@ get '/api/stream/events', :provides => 'text/event-stream' do
 end
 get '/api/stream/results', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
-		$connectionsResults << out
-		out.callback { $connectionsResults.delete(out) }
+		$connections_results << out
+		out.callback { $connections_results.delete(out) }
 	end
 end
 
 ### helpers
 helpers do
 	### system status
-	def streamDebug(string)
-		$connectionsDebug.each { |out| out <<
+	def stream_debug(string)
+		$connections_debug.each { |out| out <<
 		"data: #{ts}: #{string}\n\n"}
 	end
-	def streamResult(string)
-		$connectionsResults.each { |out| out <<
+	def stream_result(string)
+		$connections_results.each { |out| out <<
 		"data: #{ts}: #{string}\n\n"}
 	end
-	def streamSystem(string)		
-		$connectionsSystem.each { |out| out <<
+	def stream_system(string)		
+		$connections_system.each { |out| out <<
 		"data: #{string}\n\n"}
 	end
 	def ts
