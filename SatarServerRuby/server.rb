@@ -30,10 +30,10 @@ require 'dm-redis-adapter'
 require 'dm-migrations'
 
 ### load the config
-config = YAML.load_file("./_config/config.yml")
+config = YAML.load_file('./_config/config.yml')
 
 ### DataMapper models
-DataMapper.setup(:default, {:adapter  => "redis", 
+DataMapper.setup(:default, {:adapter  => 'redis', 
 							:host => '127.0.0.1', 
 							:port => '6379'})
 
@@ -84,8 +84,8 @@ Event.all.destroy
 Result.all.destroy
 
 ### sinatra
-set :port, config["server"]["port"]
-set :bind, config["server"]["bind"]
+set :port, config['server']['port']
+set :bind, config['server']['bind']
 set :server, 'thin'
 
 ### variables for streaming
@@ -125,7 +125,7 @@ get '/raw/events/:nodeID' do
 	# just get the last 10 events
 	@node = Node.get(id)
 	if @node.nil?
-		"Unknown node"
+		'Unknown node'
 	else
 		erb :'raw/event', :layout => false
 	end
@@ -144,22 +144,20 @@ post '/api/event' do
 			node = Node.new(:id => nodeId)
 			node.delta = millis - timestamp
 			node.save
-			streamSystem "status"
+			streamSystem 'status'
 		### status/keepalive
 		when 1
 			node = Node.get(nodeId)
 			offsetNew = millis - timestamp
 			node.var = offsetNew - node.delta
 			# fliter out peaks
-			if node.delta.abs > 0
-				if (node.delta-offsetNew).abs < 5
-					node.delta = (offsetNew+node.delta)/2
-				end
+			if node.delta.abs > 0 && (node.delta-offsetNew).abs < 5
+				node.delta = (offsetNew+node.delta)/2
 			end
 			streamDebug "(#{nodeId}) has an offset of #{node.delta}"
 			node.status = statusId
 			node.save
-			streamSystem "status"
+			streamSystem 'status'
 		### eventId >= 100: hardware event!
 		when 100..108
 		### log it
@@ -171,13 +169,12 @@ post '/api/event' do
 				### stream it so that a riderId can be connected
 				node.events << event
 				node.save # prevent fuckup when accessing the last event
-				streamSystem "hello?"
 				streamSystem "event;#{node.id}"
 			end
 			node.save
 		### other stuff
 		else
-			streamDebug "unknown eventID"
+			streamDebug 'unknown eventID'
 	end
 	204 # response without entity body
 end
@@ -259,9 +256,10 @@ helpers do
 		"data: #{string}\n\n"}
 	end
 	def ts
-		Time.now.strftime("%H:%M:%S,%L")
+		Time.now.strftime('%H:%M:%S,%L')
 	end
 	def millis
 		(Time.now.to_f * 1000).floor
 	end
 end
+

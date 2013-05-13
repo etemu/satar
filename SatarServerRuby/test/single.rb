@@ -1,7 +1,7 @@
 #!/usr/bin/ruby
  
-require "uri"
-require "net/http"
+require 'uri'
+require 'net/http'
 
 #$url = 'http://www.area42.l3kn.de'
 $url = 'http://localhost:42337'
