@@ -16,4 +16,4 @@ sql:
   host: localhost
   user: l3kn
   pw: how about no?
-  table: l3kn_satar 
+  db: l3kn_satar 

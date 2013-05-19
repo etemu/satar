@@ -40,12 +40,12 @@ $config = YAML.load_file('./_config/config.yml')
 ### DataMapper models
 if $config['redis']['mode'] == 0
 	DataMapper.setup(:default, {:adapter  => 'redis', 
-								:path => $config['redis']['sock']
+								:host => $config['redis']['host'],
+								:port => $config['redis']['port']
 								})
 else
 	DataMapper.setup(:default, {:adapter  => 'redis', 
-								:host => $config['redis']['host'],
-								:port => $config['redis']['port']
+								:path => $config['redis']['sock']
 								})
 end
 
@@ -274,13 +274,14 @@ helpers do
 	def millis
 		(Time.now.to_f * 1000).floor
 	end
-	def send_result(resID, runID, usrId, res)
+	def send_result(runID, usrID, res)
 		begin
-			con = Mysql.new $config['sql']['host'],
+			con = Mysql.new($config['sql']['host'],
 							$config['sql']['user'],
 							$config['sql']['pw'],
-							$config['sql']['table']
-			con.query "INSERT INTO satar (ResultID,RunID,UserID,RunTime) VALUES (#{resID},#{runID},#{usrID},#{res})" 
+							$config['sql']['db'])
+
+			con.query "INSERT INTO satar (RunID,UserID,RunTime) VALUES (#{runID},#{usrID},#{res})" 
 		rescue Mysql::Error => e
 			stream_debug "SQL failed: #{e.errno}#{e.error}"
 		ensure
