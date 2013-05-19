@@ -21,10 +21,11 @@
 # 	+ now deleting a riders timeset after completion
 ################################################################################
 
+require 'rubygems'
 require 'erb'	 # view
 require 'sinatra'# controller
 require 'yaml'
-require 'rubygems'
+require 'mysql'
 require 'dm-core'
 require 'dm-redis-adapter'
 require 'dm-migrations'
@@ -34,8 +35,8 @@ config = YAML.load_file('./_config/config.yml')
 
 ### DataMapper models
 DataMapper.setup(:default, {:adapter  => 'redis', 
-							:host => '127.0.0.1', 
-							:port => '6379'})
+							:path => '/home/l3kn/.redis/sock'
+							})
 
 class Node
 	include DataMapper::Resource
@@ -260,6 +261,18 @@ helpers do
 	end
 	def millis
 		(Time.now.to_f * 1000).floor
+	end
+	def sendResult(resID, runID, usrId,res)
+		begin
+			con = Mysql.new 'localhost', 'user12', '34klq*'
+			stream_debug "SQL info:#{con.get_server_info}"
+			rs = con.query "INSERT INTO satar (TSN,EVENT,ID,NODE) VALUES (#{resID},#{runID},#{usrID},#{res})"
+			stream_debug rs.fetch_row 
+		rescue Mysql::Error => e
+			stream_debug "SQL failed #{e.errno}#{e.error}"
+		ensure
+			con.close if con
+		end
 	end
 end
 
