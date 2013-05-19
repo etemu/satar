@@ -2,6 +2,10 @@
 # coding: utf-8
 ################################################################################
 # SatarServer Ruby by Leon Rische
+# 
+# TODO: make sinatra an object
+# 		remove global vars
+# 
 # 0.2.0
 # 	+ changed the way events are streamed
 # 		+ the node list is now loaded when opening the page
@@ -31,12 +35,19 @@ require 'dm-redis-adapter'
 require 'dm-migrations'
 
 ### load the config
-config = YAML.load_file('./_config/config.yml')
+$config = YAML.load_file('./_config/config.yml')
 
 ### DataMapper models
-DataMapper.setup(:default, {:adapter  => 'redis', 
-							:path => '/home/l3kn/.redis/sock'
-							})
+if $config['redis']['mode'] == 0
+	DataMapper.setup(:default, {:adapter  => 'redis', 
+								:path => $config['redis']['sock']
+								})
+else
+	DataMapper.setup(:default, {:adapter  => 'redis', 
+								:host => $config['redis']['host'],
+								:port => $config['redis']['port']
+								})
+end
 
 class Node
 	include DataMapper::Resource
@@ -85,8 +96,8 @@ Event.all.destroy
 Result.all.destroy
 
 ### sinatra
-set :port, config['server']['port']
-set :bind, config['server']['bind']
+set :port, $config['server']['port']
+# set :bind, $config['server']['bind']
 set :server, 'thin'
 
 ### variables for streaming
@@ -200,6 +211,7 @@ post '/api/event/:node_ID/:eventKey' do
 		rider.last = nil
 		stream_debug "got a time of #{diff}ms for rider #{rider_ID}"
 		stream_result "#{rider_ID};#{diff}"
+		send_result(1, 1, rider_ID, diff)
 	end
 	rider.save
 	event.destroy
@@ -262,14 +274,15 @@ helpers do
 	def millis
 		(Time.now.to_f * 1000).floor
 	end
-	def sendResult(resID, runID, usrId,res)
+	def send_result(resID, runID, usrId, res)
 		begin
-			con = Mysql.new 'localhost', 'user12', '34klq*'
-			stream_debug "SQL info:#{con.get_server_info}"
-			rs = con.query "INSERT INTO satar (TSN,EVENT,ID,NODE) VALUES (#{resID},#{runID},#{usrID},#{res})"
-			stream_debug rs.fetch_row 
+			con = Mysql.new $config['sql']['host'],
+							$config['sql']['user'],
+							$config['sql']['pw'],
+							$config['sql']['table']
+			con.query "INSERT INTO satar (ResultID,RunID,UserID,RunTime) VALUES (#{resID},#{runID},#{usrID},#{res})" 
 		rescue Mysql::Error => e
-			stream_debug "SQL failed #{e.errno}#{e.error}"
+			stream_debug "SQL failed: #{e.errno}#{e.error}"
 		ensure
 			con.close if con
 		end

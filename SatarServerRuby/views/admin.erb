@@ -1,10 +1,22 @@
 <div class="row">
 	<div class="col6">
+		<!-- TODO: if-clause -->
+		<h2>Start a new run</h2>
+		<form action="/admin/run/start" method="post">
+			<input type="text" name="name">
+			<input type="submit" value="start">
+		</form>
+		<h2>Stop the current run</h2>
+		<form action="/admin/run/stop" method="post">
+			<input type="submit" value="stop">
+		</form>		
+	</div>
+	<div class="col6">
 		<h1>Danger Zone!!</h1>
 		<div class="block">
 			<h2>Reset the DB</h2>
 			<form action="/admin/reset" method="post">
-				<input type="submit" value="Reset" />
+				<input type="submit" value="Reset">
 			</form>
 		</div>
 	</div>
