@@ -211,7 +211,7 @@ post '/api/event/:node_ID/:eventKey' do
 		rider.last = nil
 		stream_debug "got a time of #{diff}ms for rider #{rider_ID}"
 		stream_result "#{rider_ID};#{diff}"
-		send_result(1, 1, rider_ID, diff)
+		send_result(1, rider_ID, diff)
 	end
 	rider.save
 	event.destroy
