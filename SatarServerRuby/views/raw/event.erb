@@ -6,7 +6,7 @@
 		<% end %>
 		<form action=/api/event/<%= @node.id %>/<%= @event.id %> method="post">
 			<input type="number" name="riderId" id="riderId" value="1"/>
-			<input class="submit" type="submit" onclick="this.value = 'done'" value="Submit" /> 
+			<input class="submit" type="submit" onclick="this.style.visibility = 'hidden'" value="Submit" /> 
 		</form>
 	</div>
 <% end %>

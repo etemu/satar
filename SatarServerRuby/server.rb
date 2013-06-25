@@ -45,7 +45,7 @@ if $config['redis']['mode'] == 0
 								})
 else
 	DataMapper.setup(:default, {:adapter  => 'redis', 
-								:path => $config['redis']['sock']
+								:path => $config['redis']['socket']
 								})
 end
 
@@ -145,17 +145,17 @@ end
 
 ### API
 post '/api/event' do
+	# extract the parameters out of the post
 	timestamp = params['TSN'].to_i
 	event_ID = params['EVENT'].to_i
 	node_ID = params['NODE'].to_i
 	status_ID = params['ID'].to_i
+
 	case event_ID
 		### status/bootup
 		when 0
-			stream_debug "(#{node_ID}) booted up"
-			node = Node.new(:id => node_ID)
-			node.delta = millis - timestamp
-			node.save
+			stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
+			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337)
 			stream_system 'status'
 		### status/keepalive
 		when 1
@@ -211,7 +211,7 @@ post '/api/event/:node_ID/:eventKey' do
 		rider.last = nil
 		stream_debug "got a time of #{diff}ms for rider #{rider_ID}"
 		stream_result "#{rider_ID};#{diff}"
-		send_result(1, rider_ID, diff)
+	 	send_result(1, rider_ID, diff) unless $config['debug'] == '1'
 	end
 	rider.save
 	event.destroy
