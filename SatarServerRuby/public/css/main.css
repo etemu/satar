@@ -45,7 +45,8 @@ ul {
   background: #0099cc; }
   #header .logo {
     background: url(/images/Header.svg);
-    background-repeat: no-repeat;
+    background-size: 396px 89px;
+	background-repeat: no-repeat;
     height: 100px;
     margin-top: -25px;
     margin-left: -20px; }
