@@ -1,0 +1,20 @@
+redis:
+  number: 2
+  # select a redis instance
+  mode: 0
+  # 1 = redis is running on a socket
+  # 0 = redis is running on a port
+  socket: '/home/l3kn/.redis/sock' 
+  host: '127.0.0.1'
+  port: 6379 
+
+server:
+  port: 42337   # port for the web server
+  bind: 0.0.0.0
+
+sql:
+  host: localhost
+  user: root
+  pw: YOUR_DATABASE_PASSWORD
+  db: satar # must exist, do not change for proper interaction with other scripts
+  table: satar_results # must exist, do not change for proper interaction with other scripts

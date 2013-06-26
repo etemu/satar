@@ -1,20 +1,22 @@
 #!/usr/bin/env ruby -I ../lib -I lib
 # coding: utf-8
 ################################################################################
-# SatarServer Ruby by Leon Rische
+# SatarServerRuby by Leon Rische
 # 
 # TODO: make sinatra an object
 # 		remove global vars
 # 
+# 0.2.1
+# 	+ MySQL database output of race results
 # 0.2.0
 # 	+ changed the way events are streamed
-# 		+ the node list is now loaded when opening the page
+# 		+ the node list is now loaded when opening the page for the first time
 # 		+ the event list for each node is safed and reloaded dynamically
 # 		+ improvend the stream/node selection function (reload on change)
 # 		+ using one stream for all change events
-# 		+ checked in events are deleted now
+# 		+ events which are checked in are deleted now
 # 	+ moved all html creation to erb files
-# 	+ displaying a nodes var in the interface
+# 	+ displaying a node's var in the interface
 # 	+ calculating deltas between nodes
 # 0.1.1
 # 	+ using data mapper now
@@ -35,7 +37,7 @@ require 'dm-redis-adapter'
 require 'dm-migrations'
 
 ### load the config
-$config = YAML.load_file('./_config/config.yml')
+$config = YAML.load_file('./config/config.yml')
 
 ### DataMapper models
 if $config['redis']['mode'] == 0
@@ -97,7 +99,7 @@ Result.all.destroy
 
 ### sinatra
 set :port, $config['server']['port']
-# set :bind, $config['server']['bind']
+set :bind, $config['server']['bind']
 set :server, 'thin'
 
 ### variables for streaming
@@ -137,7 +139,7 @@ get '/raw/events/:nodeID' do
 	# just get the last 10 events
 	@node = Node.get(node_ID)
 	if @node.nil?
-		'Unknown node'
+		'No node selected.'
 	else
 		erb :'raw/event', :layout => false
 	end
@@ -152,26 +154,24 @@ post '/api/event' do
 	status_ID = params['ID'].to_i
 
 	case event_ID
-		### status/bootup
-		when 0
+		when 0 ### status/bootup
 			stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
-			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337)
+			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time
 			stream_system 'status'
-		### status/keepalive
-		when 1
+		when 1 ### status/keepalive
 			node = Node.get(node_ID)
 			offsetNew = millis - timestamp
-			node.var = offsetNew - node.delta
-			# fliter out peaks
+			node.var = offsetNew - node.delta # deviation from last offset
+			# smooth the offset, a crude fliter
 			if node.delta.abs > 0 && (node.delta-offsetNew).abs < 5
 				node.delta = (offsetNew+node.delta)/2
+				stream_debug "(#{node_ID}) offset deviation: #{node.var}"			
 			end
-			stream_debug "(#{node_ID}) has an offset of #{node.delta}"
+			stream_debug "(#{node_ID}) offset update to #{node.delta}"
 			node.status = status_ID
 			node.save
 			stream_system 'status'
-		### event_ID >= 100: hardware event!
-		when 100..108
+		when 100..108 ### event_ID >= 100: hardware event!
 		### log it
 			node = Node.get(node_ID)
 			stream_debug "(#{node_ID}) triggered input #{event_ID-100}"
@@ -184,9 +184,9 @@ post '/api/event' do
 				stream_system "event;#{node.id}"
 			end
 			node.save
-		### other stuff
+		### other stuff to follow in future versions
 		else
-			stream_debug 'unknown eventID'
+			stream_debug '(#{node_ID}) sent unknown eventID #{event_ID}'
 	end
 	204 # response without entity body
 end
@@ -209,7 +209,7 @@ post '/api/event/:node_ID/:eventKey' do
 		result = Result.create(:time => diff)
 		rider.results << result
 		rider.last = nil
-		stream_debug "got a time of #{diff}ms for rider #{rider_ID}"
+		stream_debug "New run time of #{diff}ms for rider #{rider_ID}"
 		stream_result "#{rider_ID};#{diff}"
 	 	send_result(1, rider_ID, diff) unless $config['debug'] == '1'
 	end
@@ -274,16 +274,16 @@ helpers do
 	def millis
 		(Time.now.to_f * 1000).floor
 	end
-	def send_result(runID, usrID, res)
+	def send_result(raceID, riderID, res)
 		begin
 			con = Mysql.new($config['sql']['host'],
 							$config['sql']['user'],
 							$config['sql']['pw'],
 							$config['sql']['db'])
 
-			con.query "INSERT INTO satar (RunID,UserID,RunTime) VALUES (#{runID},#{usrID},#{res})" 
+			con.query "INSERT INTO #{$config['sql']['table']} (raceID,userID,runTime) VALUES (#{raceID},#{usrID},#{res})" 
 		rescue Mysql::Error => e
-			stream_debug "SQL failed: #{e.errno}#{e.error}"
+			stream_debug "SQL reply: #{e.errno}#{e.error}"
 		ensure
 			con.close if con
 		end
