@@ -5,10 +5,9 @@
 			Timed out!
 		<% end %>
 		<form action=/api/event/<%= @node.id %>/<%= @event.id %> method="post">
-			<input type="text" name="riderId" id="riderId" value="1"/>
+			<input type="number" name="riderId" id="riderId" value="1"/>
 			<input class="submit" type="submit" onclick="this.style.visibility = 'hidden'" value="Submit" /> 
 		</form>
 	</div>
-	<script>$('#riderId').spinner();</script>
 <% end %>
 

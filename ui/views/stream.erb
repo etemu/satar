@@ -13,12 +13,13 @@
 		<h1>Settings</h1>
 		<div class="block">
 			<h2>Node ID</h2>
-			<input type="number" id="node" width="4"/>
+			<input type="text" id="node" width="4"/>
 		</div>
 	</div>
 </div>
 
 <script>
+	$('#node').spinner();
 	$(document).ready(function() {
 		var id = sessionStorage.getItem('id');
 		$("#node").val(id);
