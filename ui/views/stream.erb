@@ -13,18 +13,25 @@
 		<h1>Settings</h1>
 		<div class="block">
 			<h2>Node ID</h2>
-			<input type="text" id="node" width="4"/>
+			<input type="text" id="node" width="4" />
+			<script>
+				$(function() {
+					$('#node').spinner({
+							min: 1,
+							step: 1
+					});
+			});
+		</script>
 		</div>
 	</div>
 </div>
 
 <script>
-	$('#node').spinner();
 	$(document).ready(function() {
 		var id = sessionStorage.getItem('id');
-		$("#node").val(id);
+		$('#node').val(id);
 		var ss = new EventSource('/api/stream/system');
-		$('div#events').load("/raw/events/"+id);
+		$('div#events').load('/raw/events/'+id);
 		ss.onmessage = function(e) {
 			// this just tells our script that there is something new
 			// if it is node stuff, we pull the content from the "raw"-API
