@@ -37,7 +37,7 @@ require 'dm-redis-adapter'
 require 'dm-migrations'
 
 ### load the config
-$config = YAML.load_file('./config/config.yml')
+$config = YAML.load_file(File.expand_path File.dirname(__FILE__) + '/config/config.yml')
 
 ### DataMapper models
 if $config['redis']['mode'] == 0
@@ -274,14 +274,14 @@ helpers do
 	def millis
 		(Time.now.to_f * 1000).floor
 	end
-	def send_result(raceID, riderID, res)
+	def send_result(raceID, userID, res)
 		begin
 			con = Mysql.new($config['sql']['host'],
 							$config['sql']['user'],
 							$config['sql']['pw'],
 							$config['sql']['db'])
 
-			con.query "INSERT INTO #{$config['sql']['table']} (raceID,userID,runTime) VALUES (#{raceID},#{usrID},#{res})" 
+			con.query "INSERT INTO #{$config['sql']['table']} (raceID,userID,runTime) VALUES (#{raceID},#{userID},#{res})" 
 		rescue Mysql::Error => e
 			stream_debug "SQL reply: #{e.errno}#{e.error}"
 		ensure
