@@ -41,24 +41,24 @@ ul {
 
 #header {
   margin: 40px auto 20px auto;
-  height: 49px;
+  height: 55px;
   background: #0099cc; }
   #header .logo {
     background: url(/images/Header.svg);
     background-repeat: no-repeat;
-    height: 100px;
-    margin-top: -25px;
-    margin-left: -20px; }
+    height: 92px;
+    margin-top: -32px;
+    margin-left: -10px; }
 
 #main {
-  margin-bottom: 49px; }
+  margin-bottom: 55px; }
   #main h1 {
     margin-bottom: 10px;
     font-family: JuraLight;
     text-shadow: 1px 1px white; }
 
 #footer {
-  height: 49px;
+  height: 55px;
   background: #0099cc;
   position: fixed;
   bottom: 0;
