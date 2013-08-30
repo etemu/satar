@@ -111,6 +111,8 @@ $connections_debug = [] # Debuglog
 $connections_system = [] # System status
 $connections_results = [] # pairs of trigger events
 
+$race_id = 0
+
 # routes
 ################################################################################
 
@@ -223,7 +225,9 @@ post '/api/event/:node_ID/:eventKey' do
 		stream_debug "New run time of #{diff}ms for rider #{rider_ID}"
 		stream_result "#{rider_ID};#{diff}"
 		# log to the sql db
-	 	send_result(1, rider_ID, diff) unless $config['debug'] == '1'
+	 	if $race_id > 0
+			send_result($race_id, rider_ID, diff) unless $config['debug'] == '1'
+		end
 	end
 	rider.save
 	event.destroy
@@ -237,6 +241,16 @@ post '/admin/reset' do
 	Event.all.destroy
 	Result.all.destroy
 	erb :admin
+end
+
+post '/admin/start' do
+	$race_id = params['race_id'].to_i
+	204
+end
+
+post '/admin/stop' do
+	$race_id = 0
+	204
 end
 
 # streaming
