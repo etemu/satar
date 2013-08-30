@@ -36,10 +36,13 @@ require 'dm-core'
 require 'dm-redis-adapter'
 require 'dm-migrations'
 
-### load the config
+# setup
+################################################################################
+
+# load the config
 $config = YAML.load_file(File.expand_path File.dirname(__FILE__) + '/config/config.yml')
 
-### DataMapper models
+# DataMapper models
 if $config['redis']['mode'] == 0
 	DataMapper.setup(:default, {:adapter  => 'redis', 
 								:host => $config['redis']['host'],
@@ -51,6 +54,7 @@ else
 								})
 end
 
+# DataMapper classes
 class Node
 	include DataMapper::Resource
 
@@ -97,18 +101,20 @@ Node.all.destroy
 Event.all.destroy
 Result.all.destroy
 
-### sinatra
+# sinatra setup
 set :port, $config['server']['port']
 set :bind, $config['server']['bind']
-set :server, 'thin'
+set :server, 'thin' # supports event-machine
 
-### variables for streaming
+# variables for streaming
 $connections_debug = [] # Debuglog
 $connections_system = [] # System status
 $connections_results = [] # pairs of trigger events
 
-### routes
-### main views
+# routes
+################################################################################
+
+# main views
 get '/' do
 	erb :index
 end
@@ -122,7 +128,7 @@ get '/admin' do
 	erb :admin
 end
 
-### raw views
+# raw views
 get '/raw/nodes' do
 	@nodes = Node.all
 	erb :'raw/nodes', :layout => false
@@ -136,7 +142,6 @@ end
 
 get '/raw/events/:nodeID' do
 	node_ID = params[:nodeID]
-	# just get the last 10 events
 	@node = Node.get(node_ID)
 	if @node.nil?
 		'No node selected.'
@@ -145,7 +150,7 @@ get '/raw/events/:nodeID' do
 	end
 end
 
-### API
+# API
 post '/api/event' do
 	# extract the parameters out of the post
 	timestamp = params['TSN'].to_i
@@ -154,11 +159,11 @@ post '/api/event' do
 	status_ID = params['ID'].to_i
 
 	case event_ID
-		when 0 ### status/bootup
+		when 0 # status/bootup
 			stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
 			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time
 			stream_system 'status'
-		when 1 ### status/keepalive
+		when 1 # status/keepalive
 			node = Node.get(node_ID)
 			offsetNew = millis - timestamp
 			node.var = offsetNew - node.delta # deviation from last offset
@@ -171,46 +176,53 @@ post '/api/event' do
 			node.status = status_ID
 			node.save
 			stream_system 'status'
-		when 100..108 ### event_ID >= 100: hardware event!
-		### log it
+		when 100..108 # event_ID >= 100: hardware event!
 			node = Node.get(node_ID)
 			stream_debug "(#{node_ID}) triggered input #{event_ID-100}"
 			if node.delta!=nil
 				relativeTime = timestamp+node.delta
 				event = Event.create(:time => relativeTime)
-				### stream it so that a riderId can be connected
+				# stream it so that a riderId can be connected
 				node.events << event
 				node.save # prevent fuckup when accessing the last event
 				stream_system "event;#{node.id}"
 			end
 			node.save
-		### other stuff to follow in future versions
 		else
 			stream_debug '(#{node_ID}) sent unknown eventID #{event_ID}'
 	end
 	204 # response without entity body
 end
 	
-### connect event /w rider
+# connect event /w rider
 post '/api/event/:node_ID/:eventKey' do
+	# extract the parameters
 	rider_ID = params['riderId'].to_i
 	event_key = params[:eventKey].to_i
 	node_ID = params[:nodeId].to_i
+
+	# get the corresponding rider and event
 	event = Event.get(event_key)
 	rider = Rider.get(rider_ID)
+
+	# create a new rider if it was his first event
 	if rider.nil?
 		rider = Rider.new(:id => rider_ID)
 	end
+	
 	stream_debug "connected #{event_key}/#{node_ID} with rider #{rider_ID}"
-	if rider.last.nil?
+	
+	if rider.last.nil? # first of 2 events
 		rider.last = event.time
-	else
+	else # second of 2 events
 		diff = (rider.last - event.time).abs
 		result = Result.create(:time => diff)
 		rider.results << result
+		# reset
 		rider.last = nil
 		stream_debug "New run time of #{diff}ms for rider #{rider_ID}"
 		stream_result "#{rider_ID};#{diff}"
+		# log to the sql db
 	 	send_result(1, rider_ID, diff) unless $config['debug'] == '1'
 	end
 	rider.save
@@ -219,7 +231,7 @@ post '/api/event/:node_ID/:eventKey' do
 end
 
 post '/admin/reset' do
-	# the redis adapter has no flush function so we gotta destroy them all
+	# the redis adapter has no flush function so we need destroy them ‚by hand‘
 	Rider.all.destroy
 	Node.all.destroy
 	Event.all.destroy
@@ -227,7 +239,9 @@ post '/admin/reset' do
 	erb :admin
 end
 
-### streaming
+# streaming
+################################################################################
+
 get '/api/stream/debug', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
 		$connections_debug << out
@@ -253,9 +267,11 @@ get '/api/stream/results', :provides => 'text/event-stream' do
 	end
 end
 
-### helpers
+# helpers
+################################################################################
+
 helpers do
-	### system status
+	# streaming
 	def stream_debug(string)
 		$connections_debug.each { |out| out <<
 		"data: #{ts}: #{string}\n\n"}
@@ -268,12 +284,16 @@ helpers do
 		$connections_system.each { |out| out <<
 		"data: #{string}\n\n"}
 	end
+
+	# time
 	def ts
 		Time.now.strftime('%H:%M:%S,%L')
 	end
 	def millis
 		(Time.now.to_f * 1000).floor
 	end
+	
+	# logging
 	def send_result(raceID, userID, res)
 		begin
 			con = Mysql.new($config['sql']['host'],
