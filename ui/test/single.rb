@@ -1,7 +1,7 @@
 require 'uri'
 require 'net/http'
 
-$url = 'http://www.satar.l3kn.de'
+$url = 'http://jack.l3kn.de'
 #$url = 'http://localhost:42337'
 
 def post(node,event,id)

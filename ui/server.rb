@@ -231,7 +231,7 @@ post '/api/event/:node_ID/:eventKey' do
 	end
 	rider.save
 	event.destroy
-	204
+	201
 end
 
 post '/admin/reset' do
@@ -241,14 +241,15 @@ post '/admin/reset' do
 	Event.all.destroy
 	Result.all.destroy
 	erb :admin
+	204
 end
 
-post '/admin/start' do
+post '/admin/run/start' do
 	$race_id = params['race_id'].to_i
 	204
 end
 
-post '/admin/stop' do
+post '/admin/run/stop' do
 	$race_id = 0
 	204
 end
