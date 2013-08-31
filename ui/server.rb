@@ -246,11 +246,13 @@ end
 
 post '/admin/run/start' do
 	$race_id = params['race_id'].to_i
+	stream_debug "New run started #{$race_id}"
 	204
 end
 
 post '/admin/run/stop' do
 	$race_id = 0
+	stream_debug "Run stopped"
 	204
 end
 
