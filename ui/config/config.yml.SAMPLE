@@ -14,7 +14,7 @@ server:
 
 sql:
   host: localhost
-  user: root
-  pw: satar
+  user: satar_USER
+  pw: satar_PASS
   db: satar # must exist, do not change for proper interaction with other scripts
   table: satar_results # must exist, do not change for proper interaction with other scripts
