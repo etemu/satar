@@ -1,4 +1,0 @@
-satar_userdata_dummy.csv contains a set of testdata.
-
-All values are randomized from a 1200 user database, including user input errors like city names in the zipcode cell and typos.
-E-Mail adresses, names and team names are generated from a wordlist and real life race results which can be found in the web.

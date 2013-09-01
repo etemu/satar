@@ -1,0 +1,21 @@
+redis:
+  number: 2
+  # 	  ^select a redis instance, default: 1
+  mode: 0
+  # 	1 = redis is running on a socket
+  # 	0 = redis is running on a port
+  socket: '/home/satar/.redis/sock' 
+  host: '127.0.0.1'
+  port: 6379
+
+server:
+  port: 42337
+  # port for the ui web server
+  bind: 0.0.0.0
+
+sql:
+  host: localhost
+  user: root
+  pw: satar
+  db: satar # must exist, do not change for proper interaction with other scripts
+  table: satar_server # must exist, do not change for proper interaction with other scripts
