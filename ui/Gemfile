@@ -4,12 +4,4 @@ gem 'datamapper'
 gem 'dm-redis-adapter'
 gem 'mysql'
 gem 'thin'
-gem 'jammit'
-gem 'guard'
-gem 'guard-sass'
-gem 'guard-process'
-gem 'guard-jammit'
-gem 'guard-changelog', "~> 0.1.0"
-gem 'rb-inotify', :require => false
-gem 'rb-fsevent', :require => false
-gem 'rb-fchange', :require => false
+gem 'json'

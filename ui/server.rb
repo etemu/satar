@@ -29,14 +29,15 @@
 # 	+ now deleting a riders timeset after completion
 ################################################################################
 
-require 'rubygems'
 require 'erb'	 # view
 require 'sinatra'# controller
+require 'json'
 require 'yaml'
 require 'mysql'
 require 'dm-core'
 require 'dm-redis-adapter'
 require 'dm-migrations'
+require 'dm-serializer'
 
 # setup
 ################################################################################
@@ -95,23 +96,28 @@ class Result
 	belongs_to :rider,  		:key => true
 end
 
-DataMapper.finalize
-DataMapper.auto_upgrade!
+configure do 
+	DataMapper.finalize
+	DataMapper.auto_upgrade!
 
-Rider.all.destroy
-Node.all.destroy
-Event.all.destroy
-Result.all.destroy
+	Rider.all.destroy
+	Node.all.destroy
+	Event.all.destroy
+	Result.all.destroy
 
-# sinatra setup
-set :port, $config['server']['port']
-set :bind, $config['server']['bind']
-set :server, 'thin' # supports event-machine
+	# sinatra setup
+	set :port, $config['server']['port']
+	set :bind, $config['server']['bind']
+	set :server, 'thin' # supports event-machine
+end
 
 # variables for streaming
 $connections_debug = [] # Debuglog
 $connections_system = [] # System status
 $connections_results = [] # pairs of trigger events
+$connections_event = []
+
+$messages = []
 
 $race_id = 0
 
@@ -154,6 +160,20 @@ get '/raw/events/:nodeID' do
 	end
 end
 
+# focus api
+get '/focus' do
+    erb :'focus/debug', :layout => false
+end
+
+before '/api/focus/*' do
+      content_type 'application/json'
+end
+
+get '/api/focus/event' do
+    @events = Event.all
+    @events.to_json
+end
+
 # API
 post '/api/event' do
 	# extract the parameters out of the post
@@ -192,6 +212,7 @@ post '/api/event' do
 				# stream it so that a riderId can be connected
 				node.events << event
 				node.save # prevent fuckup when accessing the last event
+                stream_event Event.last.to_json
 				stream_system "event;#{node.id}"
 			end
 			node.save
@@ -276,19 +297,18 @@ get '/api/stream/system', :provides => 'text/event-stream' do
 		out.callback { $connections_system.delete(out) }
 	end
 end
-get '/api/stream/events', :provides => 'text/event-stream' do
-	stream :keep_open do |out|
-		$connectionsEvent << out
-		out.callback { $connectionsEvent.delete(out) }
-	end
-end
 get '/api/stream/results', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
 		$connections_results << out
 		out.callback { $connections_results.delete(out) }
 	end
 end
-
+get '/api/stream/event', :provides => 'text/event-stream' do
+	stream :keep_open do |out|
+		$connections_event << out
+		out.callback { $connections_event.delete(out) }
+	end
+end
 # helpers
 ################################################################################
 
@@ -306,7 +326,10 @@ helpers do
 		$connections_system.each { |out| out <<
 		"data: #{string}\n\n"}
 	end
-
+	def stream_event(data)		
+		$connections_event.each { |out| out <<
+		"data: #{data}\n\n"}
+	end
 	# time
 	def ts
 		Time.now.strftime('%H:%M:%S,%L')
@@ -336,7 +359,11 @@ helpers do
 							$config['sql_log']['user'],
 							$config['sql_log']['pw'],
 							$config['sql_log']['db'])
-			con.query "INSERT INTO #{$config['sql_log']['table']} (#{$config['sql_log']['nodeID']},#{$config['sql_log']['nodeDelta']},#{$config['sql_log']['nodeDev']}) VALUES (#{nodeID},#{nodeDelta},#{nodeDev})" 
+			con.query "INSERT INTO #{$config['sql_log']['table']} (#{$config['sql_log']['nodeID']},
+																   #{$config['sql_log']['nodeDelta']},
+																   #{$config['sql_log']['nodeDev']}) VALUES (#{nodeID},
+																   #{nodeDelta},
+																   #{nodeDev})" 
 		rescue Mysql::Error => e
 			stream_debug "SQL log reply: #{e.errno}#{e.error}"
 		ensure

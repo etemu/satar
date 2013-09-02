@@ -1,0 +1,23 @@
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Events</title>
+</head>
+<body>
+    <table>
+        <thead>
+            <tr><th>First name</th><th>Last name</th></tr>
+        </thead>
+        <tbody data-bind="foreach: events">
+            <tr>
+                <td data-bind="text: id"></td>
+                <td data-bind="text: time"></td>
+            </tr>
+        </tbody>
+    </table>
+    <script src="/js/jquery-2.0.0.min.js"></script>
+	<script src="/js/knockout.js"></script>
+    <script src="/js/app.js"></script>
+</body>
+</html>
