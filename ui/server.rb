@@ -6,6 +6,8 @@
 # TODO: make sinatra an object
 # 		remove global vars
 # 
+# 0.2.2
+# 	+ option to start and stop a race run via the admin menu
 # 0.2.1
 # 	+ MySQL database output of race results
 # 0.2.0
@@ -146,7 +148,7 @@ get '/raw/events/:nodeID' do
 	node_ID = params[:nodeID]
 	@node = Node.get(node_ID)
 	if @node.nil?
-		'No node selected.'
+		'Select a node below.'
 	else
 		erb :'raw/event', :layout => false
 	end
@@ -167,12 +169,12 @@ post '/api/event' do
 			stream_system 'status'
 		when 1 # status/keepalive
 			node = Node.get(node_ID)
-			offsetNew = millis - timestamp
-			node.var = offsetNew - node.delta # deviation from last offset
+			offsetNew = millis - timestamp # calculate the new offset
+			node.var = offsetNew - node.delta # compare it to the last known offset
 			# smooth the offset, a crude fliter
-			if node.delta.abs > 0 && (node.delta-offsetNew).abs < 5
-				node.delta = (offsetNew+node.delta)/2
-				stream_debug "(#{node_ID}) offset deviation: #{node.var}"			
+			if node.delta.abs > 0 && (node.delta-offsetNew).abs < 200 # (todo: comment this line)
+				node.delta = (offsetNew+node.delta)/2 
+				stream_debug "(#{node_ID}) offset deviation: #{node.var}"
 			end
 			stream_debug "(#{node_ID}) offset update to #{node.delta}"
 			node.status = status_ID
@@ -212,7 +214,7 @@ post '/api/event/:node_ID/:eventKey' do
 		rider = Rider.new(:id => rider_ID)
 	end
 	
-	stream_debug "connected #{event_key}/#{node_ID} with rider #{rider_ID}"
+	stream_debug "Connected event #{node_ID}-#{event_key} with rider #{rider_ID}"
 	
 	if rider.last.nil? # first of 2 events
 		rider.last = event.time
@@ -246,13 +248,13 @@ end
 
 post '/admin/run/start' do
 	$race_id = params['race_id'].to_i
-	stream_debug "New run started #{$race_id}"
+	stream_debug "Race run <b>#{$race_id}</b> started."
 	204
 end
 
 post '/admin/run/stop' do
+	stream_debug "Race run <b>#{$race_id}</b> stopped."
 	$race_id = 0
-	stream_debug "Run stopped"
 	204
 end
 
@@ -318,7 +320,7 @@ helpers do
 							$config['sql']['pw'],
 							$config['sql']['db'])
 
-			con.query "INSERT INTO #{$config['sql']['table']} (raceID,userID,runTime) VALUES (#{raceID},#{userID},#{res})" 
+			con.query "INSERT INTO #{$config['sql']['table']} ($config['sql']['raceID'],$config['sql']['userID'],$config['sql']['runtime'],onTrack) VALUES (#{raceID},#{userID},#{res},0)"
 		rescue Mysql::Error => e
 			stream_debug "SQL reply: #{e.errno}#{e.error}"
 		ensure
