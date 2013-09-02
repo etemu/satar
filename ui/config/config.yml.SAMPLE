@@ -18,3 +18,6 @@ sql:
   pw: satar_PASS
   db: satar # must exist, do not change for proper interaction with other scripts
   table: satar_results # must exist, do not change for proper interaction with other scripts
+  raceID: raceID # MySQL table column names for the results can be changed here,
+  userID: userID # ^ this is useful for custom postprocessor,
+  runtime: runtime # ^ most times these can be left at their default values.
