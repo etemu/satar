@@ -19,6 +19,6 @@ def post2(node,event,id)
 end
 
 
-post(2,0,111)
-post(2,1,111)
+post(1,0,111)
+post(1,1,111)
 10.times { post(2,101,111) }

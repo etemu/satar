@@ -10,26 +10,21 @@
 	</div>
 	<div class="col6">
 		<h1>System status</h1>
-		<div class="block" id="status">
+		<div class="block" id="status" data-bind="foreach: nodes">
+		    <ul><li>
+                (<strong data-bind="text: id"></strong>) Dl <el data-bind="text: delta"></el> St <el data-bind="text: status"></el>
+            </li></ul>
 		</div>
 	</div>
 </div>
-
 <script>
 	$(document).ready(function() {
-		var es = new EventSource('/api/stream/debug');
-		var ss = new EventSource('/api/stream/system');
-		$('div#status').load("/raw/nodes");
+		var es = new EventSource('/stream/debug');
 		es.onmessage = function(e) {
-			logToTable(e.data);
-		};
-		ss.onmessage = function(e) {
-			// this just tells our script that there is something new
-			// if it is node stuff, we pull the content from the "raw"-API
-			if(e.data.split(';')[0] == "status")
-			{
-				$('div#status').load("/raw/nodes");		
-			}
+			$('#events').prepend('<tr><td>' + e.data + '</td></tr>');
 		};
 	});
 </script>
+<script src="/js/jquery-2.0.0.min.js"></script>
+<script src="/js/knockout.js"></script>
+<script src="/js/knock/node.js"></script>

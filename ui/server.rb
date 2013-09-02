@@ -116,6 +116,7 @@ $connections_debug = [] # Debuglog
 $connections_system = [] # System status
 $connections_results = [] # pairs of trigger events
 $connections_event = []
+$connections_node = []
 
 $messages = []
 
@@ -139,11 +140,6 @@ get '/admin' do
 end
 
 # raw views
-get '/raw/nodes' do
-	@nodes = Node.all
-	erb :'raw/nodes', :layout => false
-end
-
 get '/raw/result' do
 	@results = Result.all
 	stream_debug "#{@results.count}"
@@ -165,13 +161,17 @@ get '/focus' do
     erb :'focus/debug', :layout => false
 end
 
-before '/api/focus/*' do
+# json
+before '/json/*' do
       content_type 'application/json'
 end
 
-get '/api/focus/event' do
-    @events = Event.all
-    @events.to_json
+get '/json/events' do
+    Event.all.to_json
+end
+
+get '/json/nodes' do
+    Node.all.to_json
 end
 
 # API
@@ -187,6 +187,7 @@ post '/api/event' do
 			stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
 			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time
 			stream_system 'status'
+            stream_node node.to_json
 		when 1 # status/keepalive
 			node = Node.get(node_ID)
 			offsetNew = millis - timestamp # calculate the new offset
@@ -195,12 +196,13 @@ post '/api/event' do
 			if (node.delta.abs > 0) && (node.var.abs < 100) # (todo: comment this line)
 				node.delta = (offsetNew+node.delta)/2 
 				stream_debug "[<b>#{node_ID}</b>] momentary delta deviation: #{node.var}"
-				else
-					node.delta=offsetNew # set the new offset node <-> server without filtering
-					stream_debug "[<b>#{node_ID}</b>] delta to server: #{node.delta}, dev: #{node.var}"
+            else
+                node.delta=offsetNew # set the new offset node <-> server without filtering
+                stream_debug "[<b>#{node_ID}</b>] delta to server: #{node.delta}, dev: #{node.var}"
 			end
 			node.status = status_ID
 			node.save
+            stream_node node.to_json
 			stream_system 'status'
 			send_log(node_ID,node.delta,node.var)
 		when 100..108 # event_ID >= 100: hardware event!
@@ -212,7 +214,7 @@ post '/api/event' do
 				# stream it so that a riderId can be connected
 				node.events << event
 				node.save # prevent fuckup when accessing the last event
-                stream_event Event.last.to_json
+                stream_event event.to_json
 				stream_system "event;#{node.id}"
 			end
 			node.save
@@ -285,7 +287,7 @@ end
 # streaming
 ################################################################################
 
-get '/api/stream/debug', :provides => 'text/event-stream' do
+get '/stream/debug', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
 		$connections_debug << out
 		out.callback { $connections_debug.delete(out) }
@@ -303,10 +305,18 @@ get '/api/stream/results', :provides => 'text/event-stream' do
 		out.callback { $connections_results.delete(out) }
 	end
 end
-get '/api/stream/event', :provides => 'text/event-stream' do
+
+# json
+get '/stream/events', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
 		$connections_event << out
 		out.callback { $connections_event.delete(out) }
+	end
+end
+get '/stream/nodes', :provides => 'text/event-stream' do
+	stream :keep_open do |out|
+		$connections_node << out
+		out.callback { $connections_node.delete(out) }
 	end
 end
 # helpers
@@ -326,8 +336,13 @@ helpers do
 		$connections_system.each { |out| out <<
 		"data: #{string}\n\n"}
 	end
+    # json
 	def stream_event(data)		
 		$connections_event.each { |out| out <<
+		"data: #{data}\n\n"}
+	end
+	def stream_node(data)		
+		$connections_node.each { |out| out <<
 		"data: #{data}\n\n"}
 	end
 	# time
