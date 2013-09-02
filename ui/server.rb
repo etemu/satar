@@ -172,14 +172,17 @@ post '/api/event' do
 			offsetNew = millis - timestamp # calculate the new offset
 			node.var = offsetNew - node.delta # compare it to the last known offset
 			# smooth the offset, a crude fliter
-			if node.delta.abs > 0 && (node.delta-offsetNew).abs < 200 # (todo: comment this line)
+			if (node.delta.abs > 0) && (node.var.abs < 100) # (todo: comment this line)
 				node.delta = (offsetNew+node.delta)/2 
-				stream_debug "(#{node_ID}) offset deviation: #{node.var}"
+				stream_debug "[<b>#{node_ID}</b>] momentary delta deviation: #{node.var}"
+				else
+					node.delta=offsetNew # set the new offset node <-> server without filtering
+					stream_debug "[<b>#{node_ID}</b>] delta to server: #{node.delta}, dev: #{node.var}"
 			end
-			stream_debug "(#{node_ID}) offset update to #{node.delta}"
 			node.status = status_ID
 			node.save
 			stream_system 'status'
+			send_log(node_ID,node.delta,node.var)
 		when 100..108 # event_ID >= 100: hardware event!
 			node = Node.get(node_ID)
 			stream_debug "(#{node_ID}) triggered input #{event_ID-100}"
@@ -203,8 +206,8 @@ post '/api/event/:node_ID/:eventKey' do
 	# extract the parameters
 	rider_ID = params['riderId'].to_i
 	event_key = params[:eventKey].to_i
-	node_ID = params[:nodeId].to_i
-
+	node_ID = params[:nodeId].to_i # is this really the corresponding node ID ?
+	
 	# get the corresponding rider and event
 	event = Event.get(event_key)
 	rider = Rider.get(rider_ID)
@@ -214,7 +217,7 @@ post '/api/event/:node_ID/:eventKey' do
 		rider = Rider.new(:id => rider_ID)
 	end
 	
-	stream_debug "Connected event #{node_ID}-#{event_key} with rider #{rider_ID}"
+	stream_debug "Connected event #{node_ID}/#{event_key} with rider #{rider_ID}" # TODO, DEBUG: node_ID seems to be 0 all the time
 	
 	if rider.last.nil? # first of 2 events
 		rider.last = event.time
@@ -224,7 +227,7 @@ post '/api/event/:node_ID/:eventKey' do
 		rider.results << result
 		# reset
 		rider.last = nil
-		stream_debug "New run time of #{diff}ms for rider #{rider_ID}"
+		stream_debug "Run time of #{diff}ms for rider #{rider_ID}"
 		stream_result "#{rider_ID};#{diff}"
 		# log to the sql db
 	 	if $race_id > 0
@@ -233,7 +236,7 @@ post '/api/event/:node_ID/:eventKey' do
 	end
 	rider.save
 	event.destroy
-	201
+	204
 end
 
 post '/admin/reset' do
@@ -312,17 +315,30 @@ helpers do
 		(Time.now.to_f * 1000).floor
 	end
 	
-	# logging
+	# MySQL logging of the results and for debugging purposes
 	def send_result(raceID, userID, res)
 		begin
 			con = Mysql.new($config['sql']['host'],
 							$config['sql']['user'],
 							$config['sql']['pw'],
 							$config['sql']['db'])
-
-			con.query "INSERT INTO #{$config['sql']['table']} ($config['sql']['raceID'],$config['sql']['userID'],$config['sql']['runtime'],onTrack) VALUES (#{raceID},#{userID},#{res},0)"
+			con.query "INSERT INTO #{$config['sql']['table']} (#{$config['sql']['raceID']},#{$config['sql']['userID']},#{$config['sql']['runtime']}) VALUES (#{raceID},#{userID},#{res})" 
 		rescue Mysql::Error => e
 			stream_debug "SQL reply: #{e.errno}#{e.error}"
+		ensure
+			con.close if con
+		end
+	end
+	
+	def send_log(nodeID, nodeDelta, nodeDev)
+		begin
+			con = Mysql.new($config['sql_log']['host'],
+							$config['sql_log']['user'],
+							$config['sql_log']['pw'],
+							$config['sql_log']['db'])
+			con.query "INSERT INTO #{$config['sql_log']['table']} (#{$config['sql_log']['nodeID']},#{$config['sql_log']['nodeDelta']},#{$config['sql_log']['nodeDev']}) VALUES (#{nodeID},#{nodeDelta},#{nodeDev})" 
+		rescue Mysql::Error => e
+			stream_debug "SQL log reply: #{e.errno}#{e.error}"
 		ensure
 			con.close if con
 		end

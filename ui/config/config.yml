@@ -22,3 +22,14 @@ sql:
   raceID: raceID # MySQL table column names for the results can be changed here,
   userID: userID # ^ this is useful for custom postprocessor,
   runtime: runtime # ^ most times these can be left at their default values.
+  
+# syslog: 
+sql_log:
+  host: localhost
+  user: root
+  pw: satar
+  db: satar-debug # must exist, do not change for proper interaction with other scripts
+  table: timelog # must exist, do not change for proper interaction with other scripts
+  nodeID: nodeID # MySQL table column names for the results can be changed here,
+  nodeDelta: nodeDelta # ^ this is useful for custom postprocessor,
+  nodeDev: nodeDev # ^ most times these can be left at their default values.
