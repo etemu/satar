@@ -17,7 +17,7 @@ function NodeViewModel() {
 ko.applyBindings(new NodeViewModel());
 
 $( document ).ready(function() {
-    console.log( "ready!" );
+    console.log( "ready!" );
     self = NodeViewModel();
     // streaming
     var es = new EventSource('/stream/nodes');
