@@ -1,3 +1,5 @@
+var view;
+
 function Node(data) {
     this.id = ko.observable(data.id);
     this.status = ko.observable(data.status.valueOf().toString(2));
@@ -6,7 +8,7 @@ function Node(data) {
 function NodeViewModel() {
     var self = this;
     self.nodes = ko.observableArray([]);
-    
+    view = self;
     // first load
     $.getJSON("/json/nodes", function(raw) {
         var nodes = $.map(raw, function(item) { return new Node(item) });
@@ -18,7 +20,7 @@ ko.applyBindings(new NodeViewModel());
 
 $( document ).ready(function() {
     console.log( "ready!" );
-    self = NodeViewModel();
+    var self = view;
     // streaming
     var es = new EventSource('/stream/nodes');
     es.onmessage = function (e) {
