@@ -23,7 +23,7 @@ function NodeViewModel() {
             return node.id === data.id;
         });
         if (node) {
-            node.status = data.status;
+            node.status = data.status.valueOf().toString(2);
             node.delta = data.delta;
         } else {
             self.nodes.push(data);
