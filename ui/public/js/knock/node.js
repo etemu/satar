@@ -13,7 +13,11 @@ function NodeViewModel() {
         self.nodes(nodes);
         console.log(nodes);
     });
-    
+}
+ko.applyBindings(new NodeViewModel());
+
+$( document ).ready(function() {
+    console.log( "ready!" );
     // streaming
     var es = new EventSource('/stream/nodes');
     es.onmessage = function (e) {
@@ -29,5 +33,4 @@ function NodeViewModel() {
             self.nodes.push(data);
         }
     };
-}
-ko.applyBindings(new NodeViewModel());
+});
