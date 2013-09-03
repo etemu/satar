@@ -3,15 +3,16 @@
     <li>
     	node <%= @node.id %>
    		<ul>
-    		<li>status: <%= @node.status.to_i.to_s(2) %></li>
-    		<li>offset: <%= @node.delta %>, <%= @node.var %></li>
+    		<li>mode: <%= @node.status.to_i.to_s(2) %></li>
+    		<li> &Delta;T : <%= @node.delta %> (<%= @node.var %>)</li>
+    		<li> last Packet: T-<%= millis-@node.lastPacket %> ms</li>
     		<li>
-    			deltas:
+    			Offset between nodes:
     			<ul>
     				<% for @node2 in @nodes %>
     					<% if @node.id != @node2.id %>
 							<li>
-								<%= @node.id %>-<%= @node2.id %>:
+								&Delta;(<%= @node.id %>,<%= @node2.id %>):
 								<%= @node.delta-@node2.delta %> 
 							</li>
 						<% end %>

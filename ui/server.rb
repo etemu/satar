@@ -163,7 +163,7 @@ post '/api/event' do
 	status_ID = params['ID'].to_i
 	
 	if Node.get(node_ID).nil? # check if the node_ID is virgin or if it already occured at least once.
-		node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time
+		node = Node.create(:id => node_ID, :delta => (millis - timestamp), :status => 1337, :lastPacket => millis) # node.delta = delta to server time
 		else
 		node = Node.get(node_ID)
 	end
@@ -171,21 +171,19 @@ post '/api/event' do
 	case event_ID
 		when 0 # status/bootup
 			stream_debug "[<b>#{node_ID}</b>], boot up in #{timestamp} ms."
-			stream_system 'status'
 		when 1 # status/keepalive
 			offsetNew = millis - timestamp # calculate the new offset
 			node.var = offsetNew - node.delta # compare it to the last known offset
-			# smooth the offset, a crude fliter
-			if (node.delta.abs > 0) && (node.var.abs < 100) # (todo: comment this line)
-				node.delta = (offsetNew+node.delta)/2 
-				stream_debug "[<b>#{node_ID}</b>] momentary delta deviation: #{node.var}"
+			# smooth the offset, a crude fliter:
+			if (node.delta.abs > 0) && (node.var.abs < 128) # if the deviation is below 128 ms, use the mean average.
+				node.delta = (offsetNew+node.delta)/2
+				stream_debug "[<b>#{node_ID}</b>] &Delta; drift: #{node.var}"
 				else
 					node.delta=offsetNew # set the new offset node <-> server without filtering
-					stream_debug "[<b>#{node_ID}</b>] delta to server: #{node.delta}, dev: #{node.var}"
+					stream_debug "[<b>#{node_ID}</b>] reset &Delta; to server: #{node.delta} (&Delta;': #{node.var})"
 			end
 			node.status = status_ID
 			node.save
-			stream_system 'status'
 			send_log(node_ID,node.delta,node.var)
 		when 100..108 # event_ID >= 100: hardware event!
 			stream_debug "[<b>#{node_ID}</b>] triggered input #{event_ID-100}"
@@ -201,6 +199,7 @@ post '/api/event' do
 		else
 			stream_debug '[<b>#{node_ID}</b>] sent unknown eventID #{event_ID}'
 	end
+	stream_system 'status' # update the status display
 	204 # response without entity body
 end
 	
