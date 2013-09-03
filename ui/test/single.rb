@@ -1,8 +1,8 @@
 require 'uri'
 require 'net/http'
 
-$url = 'http://jack.l3kn.de'
-#$url = 'http://localhost:42337'
+#$url = 'http://jack.l3kn.de'
+$url = 'http://localhost:42337'
 
 def post(node,event,id)
 	ts = (Time.now.to_f*1000).floor
@@ -21,4 +21,8 @@ end
 
 post(2,0,111)
 post(2,1,111)
+post(3,1,111)
+post(3,1,111)
+post(3,102,111)
 10.times { post(2,101,111) }
+

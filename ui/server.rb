@@ -161,14 +161,18 @@ post '/api/event' do
 	event_ID = params['EVENT'].to_i
 	node_ID = params['NODE'].to_i
 	status_ID = params['ID'].to_i
+	
+	if Node.get(node_ID).nil? # check if the node_ID is virgin or if it already occured at least once.
+		node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time
+		else
+		node = Node.get(node_ID)
+	end
 
 	case event_ID
 		when 0 # status/bootup
-			stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
-			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time
+			stream_debug "[<b>#{node_ID}</b>], boot up in #{timestamp} ms."
 			stream_system 'status'
 		when 1 # status/keepalive
-			node = Node.get(node_ID)
 			offsetNew = millis - timestamp # calculate the new offset
 			node.var = offsetNew - node.delta # compare it to the last known offset
 			# smooth the offset, a crude fliter
@@ -184,8 +188,7 @@ post '/api/event' do
 			stream_system 'status'
 			send_log(node_ID,node.delta,node.var)
 		when 100..108 # event_ID >= 100: hardware event!
-			node = Node.get(node_ID)
-			stream_debug "(#{node_ID}) triggered input #{event_ID-100}"
+			stream_debug "[<b>#{node_ID}</b>] triggered input #{event_ID-100}"
 			if node.delta!=nil
 				relativeTime = timestamp+node.delta
 				event = Event.create(:time => relativeTime)
@@ -196,7 +199,7 @@ post '/api/event' do
 			end
 			node.save
 		else
-			stream_debug '(#{node_ID}) sent unknown eventID #{event_ID}'
+			stream_debug '[<b>#{node_ID}</b>] sent unknown eventID #{event_ID}'
 	end
 	204 # response without entity body
 end
@@ -217,7 +220,7 @@ post '/api/event/:node_ID/:eventKey' do
 		rider = Rider.new(:id => rider_ID)
 	end
 	
-	stream_debug "Connected event #{node_ID}/#{event_key} with rider #{rider_ID}" # TODO, DEBUG: node_ID seems to be 0 all the time
+	stream_debug "Connected event [<b>#{node_ID}</b>]/#{event_key} with rider #{rider_ID}" # TODO, DEBUG: node_ID seems to be 0 all the time
 	
 	if rider.last.nil? # first of 2 events
 		rider.last = event.time
