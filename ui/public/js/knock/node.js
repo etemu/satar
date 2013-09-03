@@ -27,9 +27,9 @@ $( document ).ready(function() {
         var data = JSON.parse(e.data);
         console.log(data);
         var node = ko.utils.arrayFirst(self.nodes(), function (node) {
-            return node.id === data.id;
+            return node.id == data.id;
         });
-        if (node) {
+        if (node.id == data.id) {
             node.status = data.status.valueOf().toString(2);
             node.delta = data.delta;
         } else {
