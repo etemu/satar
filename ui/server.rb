@@ -131,7 +131,7 @@ get '/json/debug' do
 end
 
 get '/json/riders' do
-    Debug.all.take(10).to_json
+    Riders.all.take(10).to_json
 end
 
 
@@ -146,26 +146,31 @@ post '/api/event' do
     
 	case event_ID
 		when 0 # status/bootup
-			
 			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time=
             stream_node node.to_json
-        	stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
+        	
 		when 1 # status/keepalive
 			node = Node.get(node_ID)
-			offsetNew = millis - timestamp # calculate the new offset
-			node.var = offsetNew - node.delta # compare it to the last known offset
-			# smooth the offset, a crude fliter
-			if (node.delta.abs > 0) && (node.var.abs < 100) # (todo: comment this line)
-				node.delta = (offsetNew+node.delta) / 2 
-				stream_debug "(#{node_ID}) momentary delta deviation: #{node.var}"
+        	if node.nil?
+                node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => status_ID)
+                stream_debug "(#{node_ID}, #{timestamp}:#{millis}) create on keepalive"
             else
-                node.delta=offsetNew # set the new offset node <-> server without filtering
-                stream_debug "(#{node_ID}) delta to server: #{node.delta}, dev: #{node.var}"
-			end
-			node.status = status_ID
-			node.save
+                offsetNew = millis - timestamp # calculate the new offset
+                node.var = offsetNew - node.delta # compare it to the last known offset
+                # smooth the offset, a crude fliter
+    
+                if (node.delta.abs > 0) && (node.var.abs < 100) # (todo: comment this line)
+                    node.delta = (offsetNew+node.delta) / 2 
+                    stream_debug "(#{node_ID}) momentary delta deviation: #{node.var}"
+                else
+                    node.delta=offsetNew # set the new offset node <-> server without filtering
+                    stream_debug "(#{node_ID}) delta to server: #{node.delta}, dev: #{node.var}"
+                end
+                node.status = status_ID
+                node.save
+                send_log(node_ID,node.delta,node.var)
+            end
             stream_node node.to_json
-			send_log(node_ID,node.delta,node.var)
 		when 100..108 # event_ID >= 100: hardware event!
 			node = Node.get(node_ID)
 			stream_debug "(#{node_ID}) triggered input #{event_ID-100}"
