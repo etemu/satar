@@ -2,20 +2,20 @@
 	<div class="col12">
 		<h1>Events</h1>
 		<div class="block fscroll">
-			<div id="events">
-				
-			</div>
+            <table id="resultContainer">
+                <thead>
+                    <tr><th>Id</th><th>Time</th></tr>
+                </thead>
+                <tbody data-bind="foreach: results">
+                    <tr>
+                        <td data-bind="text: id"></td>
+                        <td data-bind="text: time"></td>
+                    </tr>
+                </tbody>
+            </table>
 		</div>
 	</div>
 </div>
-
-<script>
-	// reading
-	var es = new EventSource('/api/stream/results');
-	es.onmessage = function(e) {
-		var data = e.data.split(';');
-		var riderId = data[0];
-		var time = data[1];
-		$('#events').prepend('<div>rider '+data[0]+' just finished with a time of '+data[1]+'ms</div>');
-	};
-</script>
+<script src="/js/jquery-2.0.0.min.js"></script>
+<script src="/js/knockout.js"></script>
+<script src="/js/knock/result.js"></script>
