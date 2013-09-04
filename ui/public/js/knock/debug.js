@@ -3,9 +3,9 @@ var DebugGlobal;
 
 // knockout
 function Debug(data) {
-    this.time = ko.observable(data.time);    
-    this.text = ko.observable(data.text);
-    this.level = ko.observable(data.level);
+    this.time = data.time;    
+    this.text = data.text;
+    this.level = data.level;
 }
 function DebugViewModel() {
     DebugGlobal = this;
@@ -27,6 +27,6 @@ $( document ).ready(function() {
     var debug_es = new EventSource('/stream/debug');
     debug_es.onmessage = function (e) {
         var data = JSON.parse(e.data);
-        DebugGlobal.debugs.push(data);
+        DebugGlobal.debugs.push(Debug(data));
     };
 });

@@ -35,7 +35,7 @@ $( document ).ready(function() {
             node.status = data.status.valueOf().toString(2);
             node.delta = data.delta;
         } else {
-            NodeGlobal.nodes.push(data);
+            NodeGlobal.nodes.push(Node(data));
         }
     };
 });

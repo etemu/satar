@@ -19,9 +19,9 @@ def post2(node,event,id)
 end
 
 
-post(1,0,1)
-post(1,1,1)
-post(1,101,1)
+post(2,0,1)
+post(2,1,1)
+post(2,101,1)
 sleep(1)
-post(1,101,1)
+post(2,101,1)
 

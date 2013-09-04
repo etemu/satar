@@ -46,6 +46,6 @@ $( document ).ready(function() {
     event_es.onmessage = function (e) {
         var data = JSON.parse(e.data);
         data.rider = 0
-        EventGlobal.events.push(data);
+        EventGlobal.events.push(Event(data));
     };
 });

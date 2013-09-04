@@ -1,8 +1,8 @@
 var ResultGlobal;
 
 function Result(data) {
-    this.id = ko.observable(data.rider_id);
-    this.time = ko.observable(data.time);
+    this.id = data.rider_id;
+    this.time = data.time;
 }
 function ResultViewModel() {
     ResultGlobal = this;
@@ -22,6 +22,6 @@ $( document ).ready(function() {
     result_es.onmessage = function (e) {
         var data = JSON.parse(e.data);
         console.log(data);
-        ResultGlobal.results.push(data);
+        ResultGlobal.results.push(Result(data));
     };
 });
