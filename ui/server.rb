@@ -130,6 +130,9 @@ get '/json/debug' do
     Debug.all.take(10).to_json
 end
 
+get '/json/riders' do
+    Debug.all.take(10).to_json
+end
 
 
 
