@@ -2,13 +2,20 @@
 	<div class="col6">
 		<h1>Debug stream</h1>
 		<div class="block h400">
-			<table>
-				<tbody id="events">
-				</tbody>
-			</table>		
+            <table id="debugContainer">
+                <thead>
+                    <tr><th>Time</th><th>Text</th></tr>
+                </thead>
+                <tbody data-bind="foreach: debugs">
+                    <tr>
+                        <td data-bind="text: time"></td>
+                        <td data-bind="text: text"></td>
+                    </tr>
+                </tbody>
+            </table>
 		</div>
 	</div>
-	<div class="col6">
+	<div class="col6" id="nodeContainer">
 		<h1>System status</h1>
 		<div class="block" id="status" data-bind="foreach: nodes">
 		    <ul><li>
@@ -17,14 +24,7 @@
 		</div>
 	</div>
 </div>
-<script>
-	$(document).ready(function() {
-		var es = new EventSource('/stream/debug');
-		es.onmessage = function(e) {
-			$('#events').prepend('<tr><td>' + e.data + '</td></tr>');
-		};
-	});
-</script>
 <script src="/js/jquery-2.0.0.min.js"></script>
 <script src="/js/knockout.js"></script>
 <script src="/js/knock/node.js"></script>
+<script src="/js/knock/debug.js"></script>

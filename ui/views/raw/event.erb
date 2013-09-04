@@ -1,13 +1,25 @@
-<% for @event in @node.events.pop(20).reverse %>
-	<div class="row" id="ev<%= @event.id %>">
-		<%= Time.at(@event.time.to_f/1000).strftime("%H:%M:%S,%L") %>
-		<% if ((Time.now.to_i*1000) - @event.time) > 10000 %>
-			Timed out!
-		<% end %>
-		<form action=/api/event/<%= @node.id %>/<%= @event.id %> method="post">
-			<input type="number" name="riderId" id="riderId" value="1"/>
-			<input class="submit" type="submit" onclick="this.style.visibility = 'hidden'" value="Submit" /> 
-		</form>
-	</div>
-<% end %>
-
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Events</title>
+</head>
+<body>
+    <table id="eventContainer">
+        <thead>
+            <tr><th>Id</th><th>Time</th></tr>
+        </thead>
+        <tbody data-bind="foreach: events">
+            <tr>
+                <td data-bind="text: id"></td>
+                <td data-bind="text: time"></td>
+                <td><p>Rider: <input data-bind="value: rider" /></p></td>
+                <td><a href="#" data-bind="click: $root.saveEvent">Save</a></td>
+            </tr>
+        </tbody>
+    </table>
+    <script src="/js/jquery-2.0.0.min.js"></script>
+	<script src="/js/knockout.js"></script>
+    <script src="/js/knock/event.js"></script>
+</body>
+</html>

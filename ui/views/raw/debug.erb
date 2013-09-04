@@ -5,19 +5,19 @@
     <title>Events</title>
 </head>
 <body>
-    <table>
+    <table id="debugContainer">
         <thead>
-            <tr><th>First name</th><th>Last name</th></tr>
+            <tr><th>Time</th><th>Text</th></tr>
         </thead>
-        <tbody data-bind="foreach: events">
+        <tbody data-bind="foreach: debugs">
             <tr>
-                <td data-bind="text: id"></td>
                 <td data-bind="text: time"></td>
+                <td data-bind="text: text"></td>
             </tr>
         </tbody>
     </table>
     <script src="/js/jquery-2.0.0.min.js"></script>
 	<script src="/js/knockout.js"></script>
-    <script src="/js/knock/event.js"></script>
+    <script src="/js/knock/debug.js"></script>
 </body>
 </html>

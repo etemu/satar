@@ -2,31 +2,6 @@
 # coding: utf-8
 ################################################################################
 # SatarServerRuby by Leon Rische
-# 
-# TODO: make sinatra an object
-# 		remove global vars
-# 
-# 0.2.2
-# 	+ option to start and stop a race run via the admin menu
-# 0.2.1
-# 	+ MySQL database output of race results
-# 0.2.0
-# 	+ changed the way events are streamed
-# 		+ the node list is now loaded when opening the page for the first time
-# 		+ the event list for each node is safed and reloaded dynamically
-# 		+ improvend the stream/node selection function (reload on change)
-# 		+ using one stream for all change events
-# 		+ events which are checked in are deleted now
-# 	+ moved all html creation to erb files
-# 	+ displaying a node's var in the interface
-# 	+ calculating deltas between nodes
-# 0.1.1
-# 	+ using data mapper now
-# 	+ one rider can have many results
-# 0.1.0
-# 	+ calculating offsets and relative times for nodes
-# 	+ session storage for the node selector
-# 	+ now deleting a riders timeset after completion
 ################################################################################
 
 require 'erb'	 # view
@@ -60,7 +35,6 @@ end
 # DataMapper classes
 class Node
 	include DataMapper::Resource
-
 	property :id,		Integer, :required => true, :key => true
 	property :delta,	Integer
 	property :var,		Integer	
@@ -70,40 +44,36 @@ end
 
 class Event
 	include DataMapper::Resource
-
 	property :id,		Serial, :key => true
 	property :time,		Integer
 	belongs_to :node
 end
 
+class Debug
+	include DataMapper::Resource
+	property :id,		Serial, :key => true
+	property :time,		Integer
+	property :text,		String
+end
+
 class Rider
 	include DataMapper::Resource
-
 	property :id,			Integer, :required => true, :key => true
 	property :last,			Integer
-	# not yet implemented
-	# property :first_name,	String
-	# property :last_name,	String
-	# property :team,		String
 	has n, :results
 end
 
 class Result
 	include DataMapper::Resource
-
-	property :id,		Integer, :required => true, :key => true
+	property :id,		Serial, :key => true
 	property :time,		Integer
+    property :rider_id, Integer # we can not access the rider from knockout.js
 	belongs_to :rider,  		:key => true
 end
 
 configure do 
 	DataMapper.finalize
 	DataMapper.auto_upgrade!
-
-	Rider.all.destroy
-	Node.all.destroy
-	Event.all.destroy
-	Result.all.destroy
 
 	# sinatra setup
 	set :port, $config['server']['port']
@@ -112,67 +82,54 @@ configure do
 end
 
 # variables for streaming
-$connections_debug = [] # Debuglog
+$connections_debug  = [] # Debuglog
 $connections_system = [] # System status
-$connections_results = [] # pairs of trigger events
-$connections_event = []
-$connections_node = []
-
-$messages = []
+$connections_result = [] # pairs of trigger events
+$connections_event  = []
+$connections_node   = []
 
 $race_id = 0
 
 # routes
 ################################################################################
 
+# prefix
+before '/json/*' do
+	content_type 'application/json'
+end
+
 # main views
-get '/' do
-	erb :index
-end
-get '/stream' do
-	erb :stream
-end
-get '/results' do
-	erb :results
-end
-get '/admin' do
-	erb :admin
-end
+get '/'        do erb :index   end
+get '/stream'  do erb :stream  end
+get '/results' do erb :results end
+get '/admin'   do erb :admin   end
 
-# raw views
-get '/raw/result' do
-	@results = Result.all
-	stream_debug "#{@results.count}"
-	erb :'raw/result', :layout => false
-end
-
-get '/raw/events/:nodeID' do
-	node_ID = params[:nodeID]
-	@node = Node.get(node_ID)
-	if @node.nil?
-		'Select a node below.'
-	else
-		erb :'raw/event', :layout => false
-	end
-end
-
-# focus api
-get '/focus' do
-    erb :'focus/debug', :layout => false
-end
+# raw api
+get '/raw/debug'   do erb :'raw/debug', :layout => false end
+get '/raw/event'  do erb :'raw/event', :layout => false end
+get '/raw/result' do erb :'raw/result', :layout => false end
 
 # json
-before '/json/*' do
-      content_type 'application/json'
-end
 
-get '/json/events' do
+get '/json/event' do
     Event.all.to_json
 end
 
-get '/json/nodes' do
+get '/json/node' do
     Node.all.to_json
 end
+
+get '/json/result' do
+    Result.all.to_json
+end
+
+get '/json/debug' do
+    Debug.all.to_json
+end
+
+
+
+
 
 # API
 post '/api/event' do
@@ -181,24 +138,25 @@ post '/api/event' do
 	event_ID = params['EVENT'].to_i
 	node_ID = params['NODE'].to_i
 	status_ID = params['ID'].to_i
-
+    
 	case event_ID
 		when 0 # status/bootup
-			stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
+			
 			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time
 			stream_system 'status'
             stream_node node.to_json
+        	stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
 		when 1 # status/keepalive
 			node = Node.get(node_ID)
 			offsetNew = millis - timestamp # calculate the new offset
 			node.var = offsetNew - node.delta # compare it to the last known offset
 			# smooth the offset, a crude fliter
 			if (node.delta.abs > 0) && (node.var.abs < 100) # (todo: comment this line)
-				node.delta = (offsetNew+node.delta)/2 
-				stream_debug "[<b>#{node_ID}</b>] momentary delta deviation: #{node.var}"
+				node.delta = (offsetNew+node.delta) / 2 
+				stream_debug "(#{node_ID}) momentary delta deviation: #{node.var}"
             else
                 node.delta=offsetNew # set the new offset node <-> server without filtering
-                stream_debug "[<b>#{node_ID}</b>] delta to server: #{node.delta}, dev: #{node.var}"
+                stream_debug "(#{node_ID}) delta to server: #{node.delta}, dev: #{node.var}"
 			end
 			node.status = status_ID
 			node.save
@@ -219,22 +177,21 @@ post '/api/event' do
 			end
 			node.save
 		else
-			stream_debug '(#{node_ID}) sent unknown eventID #{event_ID}'
+			stream_debug "(#{node_ID}) sent unknown eventID #{event_ID}"
 	end
 	204 # response without entity body
 end
 	
 # connect event /w rider
-post '/api/event/:node_ID/:eventKey' do
+post '/api/event/:eventKey' do
 	# extract the parameters
-	rider_ID = params['riderId'].to_i
+	rider_ID = request.body.read.to_i
 	event_key = params[:eventKey].to_i
-	node_ID = params[:nodeId].to_i # is this really the corresponding node ID ?
 	
 	# get the corresponding rider and event
 	event = Event.get(event_key)
 	rider = Rider.get(rider_ID)
-
+	node_ID = event.node.id || 0
 	# create a new rider if it was his first event
 	if rider.nil?
 		rider = Rider.new(:id => rider_ID)
@@ -246,13 +203,13 @@ post '/api/event/:node_ID/:eventKey' do
 		rider.last = event.time
 	else # second of 2 events
 		diff = (rider.last - event.time).abs
-		result = Result.create(:time => diff)
+		result = Result.create(:time => diff, :rider_id => rider.id)
 		rider.results << result
 		# reset
 		rider.last = nil
 		stream_debug "Run time of #{diff}ms for rider #{rider_ID}"
-		stream_result "#{rider_ID};#{diff}"
-		# log to the sql db
+		stream_result result.to_json
+		# log to the sql db a race is running
 	 	if $race_id > 0
 			send_result($race_id, rider_ID, diff) unless $config['debug'] == '1'
 		end
@@ -262,24 +219,27 @@ post '/api/event/:node_ID/:eventKey' do
 	204
 end
 
+
+# admin functions
+
 post '/admin/reset' do
-	# the redis adapter has no flush function so we need destroy them ‚by hand‘
+	# the redis adapter has no flush function so we need destroy them ‘by hand’
 	Rider.all.destroy
 	Node.all.destroy
 	Event.all.destroy
 	Result.all.destroy
+    Debug.all.destroy
 	erb :admin
-	204
 end
 
 post '/admin/run/start' do
 	$race_id = params['race_id'].to_i
-	stream_debug "Race run <b>#{$race_id}</b> started."
+	stream_debug "Race run (#{$race_id}) started."
 	204
 end
 
 post '/admin/run/stop' do
-	stream_debug "Race run <b>#{$race_id}</b> stopped."
+	stream_debug "Race run (#{$race_id}) stopped."
 	$race_id = 0
 	204
 end
@@ -287,36 +247,37 @@ end
 # streaming
 ################################################################################
 
-get '/stream/debug', :provides => 'text/event-stream' do
-	stream :keep_open do |out|
-		$connections_debug << out
-		out.callback { $connections_debug.delete(out) }
-	end
-end
+
 get '/api/stream/system', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
 		$connections_system << out
 		out.callback { $connections_system.delete(out) }
 	end
 end
-get '/api/stream/results', :provides => 'text/event-stream' do
-	stream :keep_open do |out|
-		$connections_results << out
-		out.callback { $connections_results.delete(out) }
-	end
-end
 
 # json
-get '/stream/events', :provides => 'text/event-stream' do
+get '/stream/event', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
 		$connections_event << out
 		out.callback { $connections_event.delete(out) }
 	end
 end
-get '/stream/nodes', :provides => 'text/event-stream' do
+get '/stream/node', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
 		$connections_node << out
 		out.callback { $connections_node.delete(out) }
+	end
+end
+get '/stream/result', :provides => 'text/event-stream' do
+	stream :keep_open do |out|
+		$connections_result << out
+		out.callback { $connections_result.delete(out) }
+	end
+end
+get '/stream/debug', :provides => 'text/event-stream' do
+	stream :keep_open do |out|
+		$connections_debug << out
+		out.callback { $connections_debug.delete(out) }
 	end
 end
 # helpers
@@ -324,18 +285,13 @@ end
 
 helpers do
 	# streaming
-	def stream_debug(string)
-		$connections_debug.each { |out| out <<
-		"data: #{ts}: #{string}\n\n"}
-	end
-	def stream_result(string)
-		$connections_results.each { |out| out <<
-		"data: #{ts}: #{string}\n\n"}
-	end
-	def stream_system(string)		
+
+
+	def stream_system(string) # dep	
 		$connections_system.each { |out| out <<
 		"data: #{string}\n\n"}
 	end
+    
     # json
 	def stream_event(data)		
 		$connections_event.each { |out| out <<
@@ -343,6 +299,17 @@ helpers do
 	end
 	def stream_node(data)		
 		$connections_node.each { |out| out <<
+		"data: #{data}\n\n"}
+	end
+	def stream_debug(data)
+        debug = Debug.create(:time => Time.now.to_i, :text => JSON.generate(data, quirks_mode: true)) # time, text
+		$connections_debug.each { |out| out <<
+        "data: #{debug.to_json}\n\n" }
+        
+        #todo: delete old messages
+	end
+	def stream_result(data)
+		$connections_result.each { |out| out <<
 		"data: #{data}\n\n"}
 	end
 	# time
@@ -386,4 +353,3 @@ helpers do
 		end
 	end
 end
-

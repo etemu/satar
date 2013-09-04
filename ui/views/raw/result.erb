@@ -1,7 +1,23 @@
-<ul>
-  <% for @result in @results %>
-	<li>
-		node <%= @result.time %>
-	</li>
-  <% end %>
-</ul>
+<!doctype html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>Events</title>
+</head>
+<body>
+    <table id="resultContainer">
+        <thead>
+            <tr><th>Id</th><th>Time</th></tr>
+        </thead>
+        <tbody data-bind="foreach: results">
+            <tr>
+                <td data-bind="text: id"></td>
+                <td data-bind="text: time"></td>
+            </tr>
+        </tbody>
+    </table>
+    <script src="/js/jquery-2.0.0.min.js"></script>
+	<script src="/js/knockout.js"></script>
+    <script src="/js/knock/result.js"></script>
+</body>
+</html>

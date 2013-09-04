@@ -22,4 +22,6 @@ end
 post(1,0,1)
 post(1,1,1)
 post(1,101,1)
-post(1,1,3)
+sleep(1)
+post(1,101,1)
+

@@ -1,7 +1,0 @@
-gzip_assets: off
-javascript_compressor: uglifier
-
-stylesheets:
-  public/css/site.min:
-    - public/css/main.css
-    - public/css/l3_grid.css
