@@ -3,9 +3,10 @@ var NodeGlobal;
 
 // knockout
 function Node(data) {
-    this.id = ko.observable(data.id);
-    this.status = ko.observable(data.status.valueOf().toString(2));
-    this.delta = ko.observable(data.delta);
+    this.id = data.id;
+    this.status = data.status.valueOf().toString(2);
+    this.delta = data.delta;
+    this.link = "/raw/event/" + data.id
 }
 function NodeViewModel() {
     NodeGlobal = this;

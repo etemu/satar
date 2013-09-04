@@ -1,52 +1,17 @@
 <div class="row">
 	<div class="col12">
-		<h1>Events</h1>
+		<h1>Nodes</h1>
 		<div class="block fscroll">
-			<div id="events">
-				
+			<div id="nodeContainer">
+		        <p>Choose your node</p>
+		        <ul data-bind="foreach: nodes">
+                <li>
+                (<strong data-bind="text: id"></strong>) <a data-bind="attr: {href: link}" target="_blank">interface</a>
+            </li></ul>
 			</div>
 		</div>
 	</div>
 </div>
-<div class="row">
-	<div class="col4">
-		<h1>Settings</h1>
-		<div class="block">
-			<h2>Node ID</h2>
-			<input type="text" id="node" width="4" />
-			<script>
-				$(function() {
-					$('#node').spinner({
-							min: 1,
-							step: 1
-					});
-			});
-		</script>
-		</div>
-	</div>
-</div>
-
-<script>
-	$(document).ready(function() {
-		var id = sessionStorage.getItem('id');
-		$('#node').val(id);
-		var ss = new EventSource('/api/stream/system');
-		$('div#events').load('/raw/events/'+id);
-		ss.onmessage = function(e) {
-			// this just tells our script that there is something new
-			// if it is node stuff, we pull the content from the "raw"-API
-			data = e.data.split(';');
-			console.log(data);
-			var id = sessionStorage.getItem('id');
-			if(data[0] == "event" && data[1] == 2)
-			{
-				$('div#events').load("/raw/events/"+id);
-			}
-		};
-		$("#node").bind('keyup mouseup', function() {
-			var value = $("#node").val();
-			sessionStorage.setItem('id',value);
-			$('div#events').load("/raw/events/"+value);
-		});
-	});
-</script>
+<script src="/js/jquery-2.0.0.min.js"></script>
+<script src="/js/knockout.js"></script>
+<script src="/js/knock/node.js"></script>

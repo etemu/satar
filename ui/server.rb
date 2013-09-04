@@ -45,6 +45,7 @@ end
 class Event
 	include DataMapper::Resource
 	property :id,		Serial, :key => true
+    property :node_id, Integer # we can not access the rider from knockout.js
 	property :time,		Integer
 	belongs_to :node
 end
@@ -107,6 +108,9 @@ get '/admin'   do erb :admin   end
 # raw api
 get '/raw/debug'   do erb :'raw/debug', :layout => false end
 get '/raw/event'  do erb :'raw/event', :layout => false end
+get '/raw/event/:id'  do 
+    erb :'raw/event_single', :layout => false, :locals => {:id => params[:id].to_i}
+end
 get '/raw/result' do erb :'raw/result', :layout => false end
 
 # json
@@ -124,9 +128,8 @@ get '/json/result' do
 end
 
 get '/json/debug' do
-    Debug.all.to_json
+    Debug.all.take(10).to_json
 end
-
 
 
 
@@ -168,7 +171,7 @@ post '/api/event' do
 			stream_debug "(#{node_ID}) triggered input #{event_ID-100}"
 			if node.delta!=nil
 				relativeTime = timestamp+node.delta
-				event = Event.create(:time => relativeTime)
+				event = Event.create(:time => relativeTime, :node_id => node.id)
 				# stream it so that a riderId can be connected
                 stream_event event.to_json
 				node.events << event

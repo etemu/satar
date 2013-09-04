@@ -1,9 +1,17 @@
 var EventGlobal;
 
 function Event(data) {
-    this.time = data.time;
+    
+    var date = new Date(data.time);
+    // hours part from the timestamp
+    var hours = date.getHours();
+    var minutes = date.getMinutes();
+    var seconds = date.getSeconds();
+    
+    this.time = hours + ':' + minutes + ':' + seconds;
     this.id = data.id;
     this.rider = 0;
+    this.node = data.node_id
 }
 function EventViewModel() {
     EventGlobal = this;
@@ -25,7 +33,9 @@ function EventViewModel() {
       		success: function(){EventGlobal.events.remove(item); },
       		dataType: "text"
 		});
-        
+    }
+    EventGlobal.deleteEvent = function(item) {
+        EventGlobal.events.remove(item);       
     }
 }
 ko.applyBindings(new EventViewModel(), document.getElementById("eventContainer"));
