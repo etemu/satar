@@ -84,7 +84,6 @@ end
 
 # variables for streaming
 $connections_debug  = [] # Debuglog
-$connections_system = [] # System status
 $connections_result = [] # pairs of trigger events
 $connections_event  = []
 $connections_node   = []
@@ -145,8 +144,7 @@ post '/api/event' do
 	case event_ID
 		when 0 # status/bootup
 			
-			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time
-			stream_system 'status'
+			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time=
             stream_node node.to_json
         	stream_debug "(#{node_ID}, #{timestamp}:#{millis}) booted up"
 		when 1 # status/keepalive
@@ -164,7 +162,6 @@ post '/api/event' do
 			node.status = status_ID
 			node.save
             stream_node node.to_json
-			stream_system 'status'
 			send_log(node_ID,node.delta,node.var)
 		when 100..108 # event_ID >= 100: hardware event!
 			node = Node.get(node_ID)
@@ -176,7 +173,6 @@ post '/api/event' do
                 stream_event event.to_json
 				node.events << event
 				node.save # prevent fuckup when accessing the last event
-				stream_system "event;#{node.id}"
 			end
 			node.save
 		else
@@ -250,14 +246,6 @@ end
 # streaming
 ################################################################################
 
-
-get '/api/stream/system', :provides => 'text/event-stream' do
-	stream :keep_open do |out|
-		$connections_system << out
-		out.callback { $connections_system.delete(out) }
-	end
-end
-
 # json
 get '/stream/event', :provides => 'text/event-stream' do
 	stream :keep_open do |out|
@@ -287,14 +275,6 @@ end
 ################################################################################
 
 helpers do
-	# streaming
-
-
-	def stream_system(string) # dep	
-		$connections_system.each { |out| out <<
-		"data: #{string}\n\n"}
-	end
-    
     # json
 	def stream_event(data)		
 		$connections_event.each { |out| out <<

@@ -3,7 +3,14 @@ var DebugGlobal;
 
 // knockout
 function Debug(data) {
-    this.time = data.time;    
+	var date = new Date(data.time);
+    // hours part from the timestamp
+    var hours = date.getHours();
+    var minutes = date.getMinutes();
+    var seconds = date.getSeconds();
+   	var millis = date.getMilliseconds();
+    
+    this.time = hours + ':' + minutes + ':' + seconds + ',' + millis; 
     this.text = data.text;
     this.level = data.level;
 }
