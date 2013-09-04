@@ -1,8 +1,8 @@
 var EventGlobal;
 
 function Event(data) {
-    this.time = ko.observable(data.time);
-    this.id = ko.observable(data.id);
+    this.time = data.time;
+    this.id = data.id;
     this.rider = 0;
 }
 function EventViewModel() {
@@ -12,13 +12,15 @@ function EventViewModel() {
     // first load
     $.getJSON("/json/event", function(raw) {
         var events = $.map(raw, function(item) { return new Event(item) });
+        console.log(events);
         EventGlobal.events(events);
     });
     
     EventGlobal.saveEvent = function(item) {
+        var id = item.id;
 		$.ajax({
    	   		type: "POST",
-      		url: "/api/event/" + item.id(),
+      		url: "/api/event/" + id,
       		data: item.rider,
       		success: function(){EventGlobal.events.remove(item); },
       		dataType: "text"

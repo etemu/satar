@@ -170,9 +170,9 @@ post '/api/event' do
 				relativeTime = timestamp+node.delta
 				event = Event.create(:time => relativeTime)
 				# stream it so that a riderId can be connected
+                stream_event event.to_json
 				node.events << event
 				node.save # prevent fuckup when accessing the last event
-                stream_event event.to_json
 				stream_system "event;#{node.id}"
 			end
 			node.save
