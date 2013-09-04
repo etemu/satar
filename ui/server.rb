@@ -64,6 +64,7 @@ class Node
 	property :delta,	Integer
 	property :var,		Integer	
 	property :status,	Integer
+	property :last,		Integer
 	has n, :events
 end
 
@@ -163,7 +164,7 @@ post '/api/event' do
 	status_ID = params['ID'].to_i
 	
 	if Node.get(node_ID).nil? # check if the node_ID is virgin or if it already occured at least once.
-		node = Node.create(:id => node_ID, :delta => (millis - timestamp), :status => 1337, :lastPacket => millis) # node.delta = delta to server time
+		node = Node.create(:id => node_ID, :delta => (millis - timestamp), :status => 1337, :last => 1337) # node.delta = delta to server time
 		else
 		node = Node.get(node_ID)
 	end
@@ -182,9 +183,8 @@ post '/api/event' do
 					node.delta=offsetNew # set the new offset node <-> server without filtering
 					stream_debug "[<b>#{node_ID}</b>] reset &Delta; to server: #{node.delta} (&Delta;': #{node.var})"
 			end
-			node.status = status_ID
 			node.save
-			send_log(node_ID,node.delta,node.var)
+			send_log(node_ID,node.delta,node.var) unless $config['debug'] == '1'
 		when 100..108 # event_ID >= 100: hardware event!
 			stream_debug "[<b>#{node_ID}</b>] triggered input #{event_ID-100}"
 			if node.delta!=nil
@@ -199,6 +199,9 @@ post '/api/event' do
 		else
 			stream_debug '[<b>#{node_ID}</b>] sent unknown eventID #{event_ID}'
 	end
+	node.last = millis # FIXME: does not work
+	node.status = status_ID
+	node.save
 	stream_system 'status' # update the status display
 	204 # response without entity body
 end
@@ -208,7 +211,7 @@ post '/api/event/:node_ID/:eventKey' do
 	# extract the parameters
 	rider_ID = params['riderId'].to_i
 	event_key = params[:eventKey].to_i
-	node_ID = params[:nodeId].to_i # is this really the corresponding node ID ?
+	node_ID = params[:nodeId].to_i # FIXME: is this really the corresponding node ID ?
 	
 	# get the corresponding rider and event
 	event = Event.get(event_key)
@@ -219,7 +222,7 @@ post '/api/event/:node_ID/:eventKey' do
 		rider = Rider.new(:id => rider_ID)
 	end
 	
-	stream_debug "Connected event [<b>#{node_ID}</b>]/#{event_key} with rider #{rider_ID}" # TODO, DEBUG: node_ID seems to be 0 all the time
+	stream_debug "Connected event [<b>#{node_ID}</b>]/#{event_key} with rider #{rider_ID}" # FIXME: node_ID seems to be 0 all the time
 	
 	if rider.last.nil? # first of 2 events
 		rider.last = event.time

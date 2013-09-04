@@ -4,10 +4,10 @@
     	node <%= @node.id %>
    		<ul>
     		<li>mode: <%= @node.status.to_i.to_s(2) %></li>
-    		<li> &Delta;T : <%= @node.delta %> (<%= @node.var %>)</li>
-    		<li> last Packet: T-<%= millis-@node.lastPacket %> ms</li>
+    		<li>&nbsp;&Delta;T : <%= @node.delta %> (<%= @node.var %>)</li>
+    		<li>last: T-<%= if @node.last.nil? then "zero" else (millis - @node.last)/1000 end%> s</li>
     		<li>
-    			Offset between nodes:
+    			node relations:
     			<ul>
     				<% for @node2 in @nodes %>
     					<% if @node.id != @node2.id %>
