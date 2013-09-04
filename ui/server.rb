@@ -309,7 +309,7 @@ helpers do
 		$connections_debug.each { |out| out <<
         "data: #{debug.to_json}\n\n" }
         
-        #todo: delete old messages
+        Debug.all.drop(32).each { |debug| debug.destroy }
 	end
 	def stream_result(data)
 		$connections_result.each { |out| out <<

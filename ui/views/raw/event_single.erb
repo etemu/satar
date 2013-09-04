@@ -8,14 +8,17 @@
 <body>
     <table id="eventContainer">
         <thead>
-            <tr><th>Id</th><th>Time</th></tr>
+            <tr><th>Id</th><th>Time</th><th>Rider</th><th>Actions</th></tr>
         </thead>
         <tbody data-bind="foreach: events">
             <tr data-bind="if: node == <%= id %>">
                 <td data-bind="text: id"></td>
                 <td data-bind="text: time"></td>
                 <td><p>Rider: <input data-bind="value: rider" /></p></td>
-                <td><a href="#" data-bind="click: $root.saveEvent">Save</a></td>
+                <td>
+                    <a href="#" data-bind="click: $root.saveEvent">Save</a>
+                    <a href="#" data-bind="click: $root.deleteEvent">Delete</a>
+                </td>
             </tr>
         </tbody>
     </table>
