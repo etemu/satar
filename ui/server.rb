@@ -39,6 +39,7 @@ class Node
 	property :delta,	Integer
 	property :var,		Integer	
 	property :status,	Integer
+	property :last,		Integer
 	has n, :events
 end
 
@@ -144,48 +145,45 @@ post '/api/event' do
 	node_ID = params['NODE'].to_i
 	status_ID = params['ID'].to_i
     
+	if Node.get(node_ID).nil? # check if the node_ID is virgin or if it already occured at least once.
+		node = Node.create(:id => node_ID, :delta => (millis - timestamp), :status => 42, :last => millis) # node.delta = delta to server time
+		stream_debug "First contact with [<b>#{node_ID}</b>], TSN at #{timestamp}."
+		else
+		node = Node.get(node_ID)
+	end
+	
 	case event_ID
 		when 0 # status/bootup
-			node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => 1337) # node.delta = delta to server time=
-            stream_node node.to_json
-        	
+        	stream_debug "\[\<b\>#{node_ID}\<\/b\>\] boot up in #{timestamp} ms."
 		when 1 # status/keepalive
-			node = Node.get(node_ID)
-        	if node.nil?
-                node = Node.create(:id => node_ID, :delta => millis - timestamp, :status => status_ID)
-                stream_debug "(#{node_ID}, #{timestamp}:#{millis}) create on keepalive"
-            else
-                offsetNew = millis - timestamp # calculate the new offset
-                node.var = offsetNew - node.delta # compare it to the last known offset
-                # smooth the offset, a crude fliter
-    
-                if (node.delta.abs > 0) && (node.var.abs < 100) # (todo: comment this line)
-                    node.delta = (offsetNew+node.delta) / 2 
-                    stream_debug "(#{node_ID}) momentary delta deviation: #{node.var}"
-                else
-                    node.delta=offsetNew # set the new offset node <-> server without filtering
-                    stream_debug "(#{node_ID}) delta to server: #{node.delta}, dev: #{node.var}"
-                end
-                node.status = status_ID
-                node.save
-                send_log(node_ID,node.delta,node.var)
-            end
-            stream_node node.to_json
+			offsetNew = millis - timestamp # calculate the new offset
+			node.var = offsetNew - node.delta # compare it to the last known offset
+			# smooth the offset, a crude fliter:
+			if (node.delta.abs > 0) && (node.var.abs < 128) # if the deviation is below 128 ms, use the mean average.
+				node.delta = (offsetNew+node.delta)/2
+				stream_debug "[<b>#{node_ID}</b>] &Delta; drift: #{node.var}"
+				else
+					node.delta=offsetNew # set the new offset node <-> server without filtering
+					stream_debug "[<b>#{node_ID}</b>] reset &Delta; to server: #{node.delta} (&Delta;': #{node.var})"
+			end
+			send_log(node_ID,node.delta,node.var) unless $config['debug'] == '1'
 		when 100..108 # event_ID >= 100: hardware event!
 			node = Node.get(node_ID)
-			stream_debug "(#{node_ID}) triggered input #{event_ID-100}"
+			stream_debug "[<b>#{node_ID}</b>] triggered input #{event_ID-100}"
 			if node.delta!=nil
 				relativeTime = timestamp+node.delta
 				event = Event.create(:time => relativeTime, :node_id => node.id)
 				# stream it so that a riderId can be connected
                 stream_event event.to_json
 				node.events << event
-				node.save # prevent fuckup when accessing the last event
 			end
-			node.save
 		else
-			stream_debug "(#{node_ID}) sent unknown eventID #{event_ID}"
+			stream_debug "[<b>#{node_ID}</b>] sent unknown eventID #{event_ID}"
 	end
+	stream_node node.to_json
+	node.last = millis
+	node.status = status_ID
+	node.save
 	204 # response without entity body
 end
 	
@@ -204,7 +202,7 @@ post '/api/event/:eventKey' do
 		rider = Rider.new(:id => rider_ID)
 	end
 	
-	stream_debug "Connected event #{node_ID}/#{event_key} with rider #{rider_ID}" # TODO, DEBUG: node_ID seems to be 0 all the time
+	stream_debug "Connected event [<b>#{node_ID}</b>]/#{event_key} with rider #{rider_ID}" 
 	
 	if rider.last.nil? # first of 2 events
 		rider.last = event.time
@@ -216,7 +214,7 @@ post '/api/event/:eventKey' do
 		rider.last = nil
 		stream_debug "Run time of #{diff}ms for rider #{rider_ID}"
 		stream_result result.to_json
-		# log to the sql db a race is running
+		# log to the sql db if a race is running
 	 	if $race_id > 0
 			send_result($race_id, rider_ID, diff) unless $config['debug'] == '1'
 		end
@@ -241,12 +239,12 @@ end
 
 post '/admin/run/start' do
 	$race_id = params['race_id'].to_i
-	stream_debug "Race run (#{$race_id}) started."
+	stream_debug "Race run <b>#{$race_id}</b> started."
 	204
 end
 
 post '/admin/run/stop' do
-	stream_debug "Race run (#{$race_id}) stopped."
+	stream_debug "Race run <b>#{$race_id}</b> stopped."
 	$race_id = 0
 	204
 end
@@ -296,7 +294,6 @@ helpers do
         debug = Debug.create(:time => Time.now.to_i, :text => JSON.generate(data, quirks_mode: true)) # time, text
 		$connections_debug.each { |out| out <<
         "data: #{debug.to_json}\n\n" }
-        
         Debug.all.drop(32).each { |debug| debug.destroy }
 	end
 	def stream_result(data)
