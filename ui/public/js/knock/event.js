@@ -26,16 +26,23 @@ function EventViewModel() {
     
     EventGlobal.saveEvent = function(item) {
         var id = item.id;
-		$.ajax({
-   	   		type: "POST",
-      		url: "/api/event/" + id,
-      		data: item.rider,
-      		success: function(){EventGlobal.events.remove(item); },
-      		dataType: "text"
-		});
+				$.ajax({
+						type: "POST",
+						url: "/api/event/" + id,
+						data: item.rider,
+						success: function(){EventGlobal.events.remove(item); },
+						dataType: "text"
+				});
     }
     EventGlobal.deleteEvent = function(item) {
-        EventGlobal.events.remove(item);       
+				var id = item.id;
+				$.ajax({
+						type: "POST",
+						url: "/api/delete/" + id,
+						data: "YOLO",
+						success: function(){EventGlobal.events.remove(item); },
+						dataType: "text"
+				});
     }
 }
 ko.applyBindings(new EventViewModel(), document.getElementById("eventContainer"));

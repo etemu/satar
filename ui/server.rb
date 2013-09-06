@@ -186,7 +186,14 @@ post '/api/event' do
 	node.save
 	204 # response without entity body
 end
-	
+
+post '/api/delete/:eventKey' do
+	event_key = params[:eventKey].to_i
+  event = Event.get(event_key)
+	event.destroy
+	204
+end
+
 # connect event /w rider
 post '/api/event/:eventKey' do
 	# extract the parameters
