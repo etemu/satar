@@ -13,11 +13,11 @@ This software package is meant for a SATAR controller
  Uses hardware SPI enabled with eth0 SPI CSN at port 10.
  AtMega clocked at 16Mhz, Microchip clocked at 25Mhz.
  
- RC1.5: Beta for live test at an MTB downhill race.
- EC2: TimeTravel implementation, p2p node communication.
- RC3: Optional absolute GPS time source with 1pps sync.
- RC4: Comprehensive user interface with WAN support.
- RC5: Optional RFID race participant identification.
+ - RC1.5: Beta for live test at an MTB downhill race.
+ - RC2: TimeTravel implementation, p2p node communication.
+ - RC3: Optional absolute GPS time source with 1pps sync.
+ - RC4: Comprehensive user interface with WAN support.
+ - RC5: Optional RFID race participant identification.
  
  Node firmware compatible with the the Arduino platform.
  Server software tested on Debian 6 and 7, Ubuntu
